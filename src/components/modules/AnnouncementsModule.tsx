@@ -8,13 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Megaphone, Calendar, User } from 'lucide-react';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 import { toast } from '@/components/ui/use-toast';
 import CommunicationCenterModule from './CommunicationCenterModule';
 
 const AnnouncementsModule = () => {
   const { announcements, loading, createAnnouncement } = useAnnouncements();
-  const { user } = useAuth();
+  const { adminUser } = useAdminAuthContext();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: '',
@@ -24,22 +24,22 @@ const AnnouncementsModule = () => {
     is_global: false
   });
 
-  const canCreateAnnouncement = user?.role && ['principal', 'school_owner', 'edufam_admin'].includes(user.role);
-  const isEduFamAdmin = user?.role === 'edufam_admin';
+  const canCreateAnnouncement = adminUser?.role && ['principal', 'school_owner', 'edufam_admin'].includes(adminUser.role);
+  const isEduFamAdmin = adminUser?.role === 'edufam_admin';
 
-  // If user is EduFam admin, show the Communication Center instead
+  // If adminUser is EduFam admin, show the Communication Center instead
   if (isEduFamAdmin) {
     return <CommunicationCenterModule />;
   }
 
   const getAudienceOptions = () => {
-    if (user?.role === 'edufam_admin') {
+    if (adminUser?.role === 'edufam_admin') {
       return ['principals', 'school_owners', 'parents', 'teachers'];
     }
-    if (user?.role === 'principal') {
+    if (adminUser?.role === 'principal') {
       return ['teachers', 'parents'];
     }
-    if (user?.role === 'school_owner') {
+    if (adminUser?.role === 'school_owner') {
       return ['principals', 'teachers', 'parents'];
     }
     return [];
@@ -57,7 +57,7 @@ const AnnouncementsModule = () => {
 
     const { error } = await createAnnouncement({
       ...newAnnouncement,
-      is_global: user?.role === 'edufam_admin'
+      is_global: adminUser?.role === 'edufam_admin'
     });
 
     if (!error) {

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 import {
   AlertTriangle,
   CreditCard,
@@ -37,7 +37,7 @@ const BillingModule = () => {
     string | undefined
   >();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { user } = useAuth();
+  const { adminUser } = useAdminAuthContext();
   const { toast } = useToast();
 
   // Use the new hooks
@@ -101,7 +101,10 @@ const BillingModule = () => {
     }
   };
 
-  if (!user || user.role !== "edufam_admin") {
+  if (
+    !adminUser ||
+    (adminUser.role !== "super_admin" && adminUser.role !== "edufam_admin")
+  ) {
     return (
       <Alert className="border-red-200 bg-red-50">
         <AlertTriangle className="h-4 w-4 text-red-600" />

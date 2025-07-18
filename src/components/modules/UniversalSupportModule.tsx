@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -16,6 +16,7 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 
 interface SupportTicket {
   id: string;
@@ -36,7 +37,7 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
   title = "Support Center",
   description = "Submit tickets and track your support requests",
 }) => {
-  const { user } = useAuth();
+  const { adminUser } = useAdminAuthContext();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -46,22 +47,22 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch user's support tickets
+  // Fetch adminUser's support tickets
   const { data: tickets, isLoading } = useQuery({
-    queryKey: ["support-tickets", user?.id],
+    queryKey: ["support-tickets", adminUser?.id],
     queryFn: async (): Promise<SupportTicket[]> => {
-      if (!user?.id) return [];
+      if (!adminUser?.id) return [];
 
       const { data, error } = await supabase
         .from("support_tickets")
         .select("*")
-        .eq("created_by", user.id)
+        .eq("created_by", adminUser.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!adminUser?.id,
   });
 
   // Create support ticket mutation
@@ -72,8 +73,8 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
         .insert({
           title: ticketData.title,
           description: ticketData.description,
-          created_by: user?.id,
-          school_id: user?.school_id,
+          created_by: adminUser?.id,
+          school_id: adminUser?.school_id,
           status: "open",
           priority: "medium",
           category: "general",

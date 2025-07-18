@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Megaphone, Send, Archive, Eye, Users, Bell, Filter, Search, AlertCircle, RefreshCw, MessageSquare, Trash2 } from 'lucide-react';
 import { useEnhancedAnnouncements, AnnouncementFilters } from '@/hooks/useEnhancedAnnouncements';
 import { useAdminCommunications } from '@/hooks/useAdminCommunications';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 import { toast } from '@/hooks/use-toast';
 import BroadcastAnnouncementDialog from './communication/BroadcastAnnouncementDialog';
 import AnnouncementFiltersComponent from './communication/AnnouncementFilters';
@@ -21,7 +21,7 @@ import AnnouncementMetrics from './communication/AnnouncementMetrics';
 import AnnouncementQuickActions from './communication/AnnouncementQuickActions';
 
 const CommunicationCenterModule = () => {
-  const { user } = useAuth();
+  const { adminUser } = useAdminAuthContext();
   const [filters, setFilters] = useState<AnnouncementFilters>({ is_archived: false });
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -58,7 +58,7 @@ const CommunicationCenterModule = () => {
     deleteCommunication
   } = useAdminCommunications();
 
-  const canCreateBroadcast = user?.role && ['edufam_admin', 'elimisha_admin'].includes(user.role);
+  const canCreateBroadcast = adminUser?.role && ['edufam_admin', 'elimisha_admin'].includes(adminUser.role);
 
   const filteredAnnouncements = announcements.filter(announcement =>
     announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

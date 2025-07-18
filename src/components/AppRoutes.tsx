@@ -14,6 +14,26 @@ import SoftwareEngineerDashboard from "@/components/dashboards/SoftwareEngineerD
 import SalesMarketingDashboard from "@/components/dashboards/SalesMarketingDashboard";
 import FinanceDashboard from "@/components/dashboards/FinanceDashboard";
 
+// Helper function to determine the correct home page for each role
+const getHomeRouteForRole = (role: string) => {
+  switch (role) {
+    case "super_admin":
+      return "/dashboard";
+    case "edufam_admin":
+      return "/dashboard";
+    case "support_hr":
+      return "/support-hr";
+    case "software_engineer":
+      return "/software-engineer";
+    case "sales_marketing":
+      return "/sales-marketing";
+    case "finance":
+      return "/finance";
+    default:
+      return "/login"; // Failsafe
+  }
+};
+
 const AppRoutes = () => {
   const { user, adminUser, isLoading, error } = useAdminAuthContext();
 
@@ -32,7 +52,7 @@ const AppRoutes = () => {
     return <LoadingSpinner />;
   }
 
-  // If no user is authenticated or no admin user found, show login page
+  // If no user is logged in, force redirect to the login page.
   if (!user || !adminUser) {
     console.log(
       "🛣️ AppRoutes: No authenticated admin user, showing login page"
@@ -53,14 +73,19 @@ const AppRoutes = () => {
     adminUser.role
   );
 
-  // If a user IS logged in and is an admin, route them based on their role.
-  // All authenticated routes should use AppContent for consistent layout
-  switch (adminUser.role) {
-    case "super_admin":
-      return (
-        <Routes>
+  // If a user IS logged in, route them based on their role.
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={<Navigate to={getHomeRouteForRole(adminUser.role)} replace />}
+      />
+
+      {/* Super Admin Routes - EXCLUSIVE ACCESS TO ORIGINAL DASHBOARD */}
+      {adminUser.role === "super_admin" && (
+        <>
           <Route
-            path="/dashboard"
+            path="/dashboard/*"
             element={
               <AppContent>
                 <EduFamAdminDashboard />
@@ -68,14 +93,6 @@ const AppRoutes = () => {
             }
           />
           <Route
-            path="/support-hr"
-            element={
-              <AppContent>
-                <SupportHrDashboard />
-              </AppContent>
-            }
-          />
-          <Route
             path="/debug"
             element={
               <AppContent>
@@ -91,15 +108,14 @@ const AppRoutes = () => {
               </AppContent>
             }
           />
-          {/* Add other super_admin specific routes here */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      );
-    case "edufam_admin":
-      return (
-        <Routes>
+        </>
+      )}
+
+      {/* EduFam Admin Routes - ACCESS TO ORIGINAL DASHBOARD */}
+      {adminUser.role === "edufam_admin" && (
+        <>
           <Route
-            path="/dashboard"
+            path="/dashboard/*"
             element={
               <AppContent>
                 <EduFamAdminDashboard />
@@ -107,7 +123,29 @@ const AppRoutes = () => {
             }
           />
           <Route
-            path="/support-hr"
+            path="/debug"
+            element={
+              <AppContent>
+                <AuthDebugger />
+              </AppContent>
+            }
+          />
+          <Route
+            path="/test"
+            element={
+              <AppContent>
+                <AuthenticationTest />
+              </AppContent>
+            }
+          />
+        </>
+      )}
+
+      {/* Support & HR Routes */}
+      {adminUser.role === "support_hr" && (
+        <>
+          <Route
+            path="/support-hr/*"
             element={
               <AppContent>
                 <SupportHrDashboard />
@@ -130,46 +168,14 @@ const AppRoutes = () => {
               </AppContent>
             }
           />
-          {/* Add other edufam_admin specific routes here */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      );
-    case "support_hr":
-      return (
-        <Routes>
+        </>
+      )}
+
+      {/* Software Engineer Routes */}
+      {adminUser.role === "software_engineer" && (
+        <>
           <Route
-            path="/dashboard"
-            element={
-              <AppContent>
-                <SupportHrDashboard />
-              </AppContent>
-            }
-          />
-          <Route
-            path="/debug"
-            element={
-              <AppContent>
-                <AuthDebugger />
-              </AppContent>
-            }
-          />
-          <Route
-            path="/test"
-            element={
-              <AppContent>
-                <AuthenticationTest />
-              </AppContent>
-            }
-          />
-          {/* Add other support_hr specific routes here */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      );
-    case "software_engineer":
-      return (
-        <Routes>
-          <Route
-            path="/dashboard"
+            path="/software-engineer/*"
             element={
               <AppContent>
                 <SoftwareEngineerDashboard />
@@ -192,15 +198,14 @@ const AppRoutes = () => {
               </AppContent>
             }
           />
-          {/* Add other software_engineer specific routes here */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      );
-    case "sales_marketing":
-      return (
-        <Routes>
+        </>
+      )}
+
+      {/* Sales & Marketing Routes */}
+      {adminUser.role === "sales_marketing" && (
+        <>
           <Route
-            path="/dashboard"
+            path="/sales-marketing/*"
             element={
               <AppContent>
                 <SalesMarketingDashboard />
@@ -223,15 +228,14 @@ const AppRoutes = () => {
               </AppContent>
             }
           />
-          {/* Add other sales_marketing specific routes here */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      );
-    case "finance":
-      return (
-        <Routes>
+        </>
+      )}
+
+      {/* Finance Routes */}
+      {adminUser.role === "finance" && (
+        <>
           <Route
-            path="/dashboard"
+            path="/finance/*"
             element={
               <AppContent>
                 <FinanceDashboard />
@@ -254,19 +258,16 @@ const AppRoutes = () => {
               </AppContent>
             }
           />
-          {/* Add other finance specific routes here */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      );
-    default:
-      // Unknown role - redirect to login
-      console.error("🛣️ AppRoutes: Unknown role:", adminUser.role);
-      return (
-        <Routes>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      );
-  }
+        </>
+      )}
+
+      {/* Default redirect for logged-in users */}
+      <Route
+        path="*"
+        element={<Navigate to={getHomeRouteForRole(adminUser.role)} replace />}
+      />
+    </Routes>
+  );
 };
 
 export default AppRoutes;

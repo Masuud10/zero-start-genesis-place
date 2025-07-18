@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { MaintenanceModeService } from "@/services/system/maintenanceModeService";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 import {
   useUserManagementStats,
   useSecuritySettings,
@@ -35,6 +35,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 // SystemMaintenanceControl removed as part of school-specific cleanup
 import AdminCommunicationsManager from "./settings/AdminCommunicationsManager";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 
 interface SystemSettings {
   maintenance_mode: boolean;
@@ -62,7 +63,7 @@ interface SecurityData {
 }
 
 const SettingsModule = () => {
-  const { user } = useAuth();
+  const { adminUser } = useAdminAuthContext();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,10 +118,10 @@ const SettingsModule = () => {
   const loadUserStats = async () => {
     setUserStatsLoading(true);
     try {
-      // Load user statistics
-      console.log("Loading user stats...");
+      // Load adminUser statistics
+      console.log("Loading adminUser stats...");
     } catch (err) {
-      console.error("Error loading user stats:", err);
+      console.error("Error loading adminUser stats:", err);
     } finally {
       setUserStatsLoading(false);
     }
@@ -192,7 +193,7 @@ const SettingsModule = () => {
     }
   };
 
-  if (!user || user.role !== "edufam_admin") {
+  if (!adminUser || adminUser.role !== "edufam_admin") {
     return (
       <Alert className="border-red-200 bg-red-50">
         <AlertTriangle className="h-4 w-4 text-red-600" />
@@ -505,7 +506,7 @@ const SettingsModule = () => {
             Admin Communications
           </CardTitle>
           <CardDescription className="text-base">
-            Create and manage system-wide communications for all user roles
+            Create and manage system-wide communications for all adminUser roles
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
@@ -523,7 +524,7 @@ const SettingsModule = () => {
             User Statistics
           </CardTitle>
           <CardDescription className="text-base">
-            Platform usage statistics and user activity metrics
+            Platform usage statistics and adminUser activity metrics
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">

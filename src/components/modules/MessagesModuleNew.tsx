@@ -27,7 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useMessagesNew } from "@/hooks/useMessagesNew";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 import { toast } from "@/hooks/use-toast";
 
 const MessagesModuleNew = () => {
@@ -42,7 +42,7 @@ const MessagesModuleNew = () => {
     getPotentialPartners,
   } = useMessagesNew();
 
-  const { user } = useAuth();
+  const { adminUser } = useAdminAuthContext();
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<
     number | null
@@ -60,13 +60,13 @@ const MessagesModuleNew = () => {
   // Load potential conversation partners
   useEffect(() => {
     const loadPartners = async () => {
-      if (user) {
+      if (adminUser) {
         const partners = await getPotentialPartners();
         setPotentialPartners(partners);
       }
     };
     loadPartners();
-  }, [user, getPotentialPartners]);
+  }, [adminUser, getPotentialPartners]);
 
   // Load messages when conversation is selected
   useEffect(() => {
@@ -88,7 +88,7 @@ const MessagesModuleNew = () => {
     setSending(true);
 
     try {
-      // Start a conversation with the selected user
+      // Start a conversation with the selected adminUser
       const { conversation, error: convError } = await startConversation(
         newMessage.receiver_id
       );
@@ -185,7 +185,7 @@ const MessagesModuleNew = () => {
     window.location.reload();
   };
 
-  if (!user) {
+  if (!adminUser) {
     return (
       <div className="flex items-center justify-center p-8">
         <Alert>
@@ -400,14 +400,14 @@ const MessagesModuleNew = () => {
                       <div
                         key={message.id}
                         className={`flex ${
-                          message.sender_id === user.id
+                          message.sender_id === adminUser.id
                             ? "justify-end"
                             : "justify-start"
                         }`}
                       >
                         <div
                           className={`max-w-xs p-3 rounded-lg ${
-                            message.sender_id === user.id
+                            message.sender_id === adminUser.id
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted"
                           }`}

@@ -1,6 +1,7 @@
 import React from "react";
 import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 import { AdminRole } from "@/types/admin";
+import { Button } from "@/components/ui/button";
 import {
   Users,
   School,
@@ -15,8 +16,12 @@ import {
   Shield,
   Calendar,
   Mail,
+  Activity,
+  ActivitySquare,
+  ToggleLeft,
+  Search,
+  Crown,
 } from "lucide-react";
-import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { useLocation, useNavigate } from "react-router-dom";
 
 interface AdminMenuItem {
@@ -30,39 +35,45 @@ interface AdminMenuItem {
 }
 
 const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: BarChart3,
-    path: "/dashboard",
-    description: "Overview and key metrics",
-  },
+  // Main Dashboard Items for Super Admin and EduFam Admin
   {
     id: "overview",
     label: "Overview",
     icon: BarChart3,
     path: "/dashboard?tab=overview",
+    roles: ["super_admin", "edufam_admin"],
     description: "System overview and metrics",
   },
   {
     id: "schools",
-    label: "Schools",
+    label: "Schools Management",
     icon: School,
     path: "/dashboard?tab=schools",
+    roles: ["super_admin", "edufam_admin"],
     description: "Manage customer schools",
   },
   {
     id: "users",
-    label: "Users",
+    label: "Users Management",
     icon: Users,
     path: "/dashboard?tab=users",
-    description: "Manage admin users and accounts",
+    roles: ["super_admin", "edufam_admin"],
+    description: "Manage school users and accounts",
+  },
+  {
+    id: "admin-users",
+    label: "Admin Users",
+    icon: Crown,
+    path: "/dashboard?tab=admin-users",
+    roles: ["super_admin"],
+    description: "Manage admin user accounts and roles",
   },
   {
     id: "analytics",
     label: "Analytics",
     icon: BarChart3,
     path: "/dashboard?tab=analytics",
+    roles: ["super_admin", "edufam_admin"],
     description: "System and business analytics",
   },
   {
@@ -70,141 +81,90 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     label: "Billing",
     icon: DollarSign,
     path: "/dashboard?tab=billing",
+    roles: ["super_admin", "edufam_admin"],
     description: "Billing and financial management",
-  },
-  {
-    id: "reports",
-    label: "Reports",
-    icon: FileText,
-    path: "/dashboard?tab=reports",
-    description: "Generate and view reports",
   },
   {
     id: "support",
     label: "Support",
     icon: Headphones,
     path: "/dashboard?tab=support",
+    roles: ["super_admin", "edufam_admin"],
     description: "Customer support management",
+  },
+  {
+    id: "system",
+    label: "System Health",
+    icon: Activity,
+    path: "/dashboard?tab=system",
+    roles: ["super_admin", "edufam_admin"],
+    description: "System management and monitoring",
+  },
+  {
+    id: "audit-logs",
+    label: "Audit Logs",
+    icon: Search,
+    path: "/dashboard?tab=audit-logs",
+    roles: ["super_admin"],
+    description: "Security audit logs and activity tracking",
+  },
+  {
+    id: "system-health",
+    label: "System Health",
+    icon: ActivitySquare,
+    path: "/dashboard?tab=system-health",
+    roles: ["super_admin"],
+    description: "Real-time health status monitoring",
+  },
+  {
+    id: "feature-flags",
+    label: "Feature Flags",
+    icon: ToggleLeft,
+    path: "/dashboard?tab=feature-flags",
+    roles: ["super_admin"],
+    description: "Feature management and toggles",
   },
   {
     id: "settings",
     label: "Settings",
     icon: Settings,
     path: "/dashboard?tab=settings",
+    roles: ["super_admin", "edufam_admin"],
     description: "System settings and configuration",
   },
+
+  // Role-specific dashboards
   {
-    id: "system",
-    label: "System",
-    icon: Database,
-    path: "/dashboard?tab=system",
-    description: "System management and monitoring",
-  },
-  {
-    id: "user-management",
-    label: "Admin Users",
-    icon: Users,
-    path: "/admin-users",
-    permission: "manage_admin_users",
-    roles: ["super_admin"],
-    description: "Manage admin user accounts and roles",
-  },
-  {
-    id: "school-management",
-    label: "Schools",
-    icon: School,
-    path: "/schools",
-    permission: "view_schools",
-    description: "Manage customer schools",
-  },
-  {
-    id: "analytics",
-    label: "Analytics",
-    icon: BarChart3,
-    path: "/analytics",
-    permission: "view_system_analytics",
-    description: "System and business analytics",
-  },
-  {
-    id: "support-tickets",
-    label: "Support",
+    id: "support-hr-dashboard",
+    label: "Support & HR Dashboard",
     icon: Headphones,
-    path: "/support",
-    permission: "view_support_tickets",
-    roles: ["super_admin", "support_hr"],
-    description: "Customer support tickets",
+    path: "/support-hr",
+    roles: ["support_hr"],
+    description: "Support and HR management dashboard",
   },
   {
-    id: "hr-management",
-    label: "HR Records",
-    icon: Users,
-    path: "/hr",
-    permission: "view_hr_records",
-    roles: ["super_admin", "support_hr"],
-    description: "Internal HR management",
-  },
-  {
-    id: "marketing",
-    label: "Marketing",
-    icon: Megaphone,
-    path: "/marketing",
-    permission: "manage_marketing_campaigns",
-    roles: ["super_admin", "sales_marketing"],
-    description: "Marketing campaigns and events",
-  },
-  {
-    id: "billing",
-    label: "Billing",
-    icon: DollarSign,
-    path: "/billing",
-    permission: "view_billing",
-    roles: ["super_admin", "finance"],
-    description: "Billing and financial management",
-  },
-  {
-    id: "logs",
-    label: "System Logs",
-    icon: FileText,
-    path: "/logs",
-    permission: "view_logs",
-    roles: ["super_admin", "software_engineer"],
-    description: "Application and system logs",
-  },
-  {
-    id: "database",
-    label: "Database",
-    icon: Database,
-    path: "/database",
-    permission: "manage_database",
-    roles: ["super_admin", "software_engineer"],
-    description: "Database management tools",
-  },
-  {
-    id: "api-usage",
-    label: "API Usage",
+    id: "software-engineer-dashboard",
+    label: "Software Engineer Dashboard",
     icon: Code,
-    path: "/api-usage",
-    permission: "view_api_usage",
-    roles: ["super_admin", "software_engineer"],
-    description: "API usage and performance metrics",
+    path: "/software-engineer",
+    roles: ["software_engineer"],
+    description: "Software engineering and development tools",
   },
   {
-    id: "audit-logs",
-    label: "Audit Logs",
-    icon: Shield,
-    path: "/audit-logs",
-    permission: "view_audit_logs",
-    roles: ["super_admin"],
-    description: "Security and audit logs",
+    id: "sales-marketing-dashboard",
+    label: "Sales & Marketing Dashboard",
+    icon: Megaphone,
+    path: "/sales-marketing",
+    roles: ["sales_marketing"],
+    description: "Sales and marketing management",
   },
   {
-    id: "settings",
-    label: "Settings",
-    icon: Settings,
-    path: "/settings",
-    permission: "manage_global_settings",
-    roles: ["super_admin"],
-    description: "Global system settings",
+    id: "finance-dashboard",
+    label: "Finance Dashboard",
+    icon: DollarSign,
+    path: "/finance",
+    roles: ["finance"],
+    description: "Financial management and reporting",
   },
 ];
 
@@ -250,18 +210,18 @@ export const AdminSidebarNavigation: React.FC = () => {
         const active = isActive(item.path);
 
         return (
-          <SidebarMenuItem key={item.id}>
-            <SidebarMenuButton
-              onClick={() => handleNavigation(item.path)}
-              className={`w-full justify-start ${
-                active ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-              }`}
-              title={item.description}
-            >
-              <Icon className="h-4 w-4 mr-3" />
-              <span>{item.label}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <Button
+            key={item.id}
+            variant={active ? "default" : "ghost"}
+            className={`w-full justify-start h-10 ${
+              active ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+            }`}
+            onClick={() => handleNavigation(item.path)}
+            title={item.description}
+          >
+            <Icon className="h-4 w-4 mr-3" />
+            <span className="text-sm">{item.label}</span>
+          </Button>
         );
       })}
 
