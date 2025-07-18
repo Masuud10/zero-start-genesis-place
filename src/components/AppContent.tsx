@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
-import { useSchool } from "@/contexts/SchoolContext";
+
 import { checkDatabaseConnection } from "@/integrations/supabase/client";
 import LoadingScreen from "@/components/common/LoadingScreen";
 import { ErrorState } from "@/components/common/LoadingStates";
@@ -20,7 +20,7 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
     isLoading: authLoading,
     error: authError,
   } = useAdminAuthContext();
-  const { currentSchool } = useSchool();
+  
   const [dbStatus, setDbStatus] = useState<{
     connected: boolean;
     error?: string;
