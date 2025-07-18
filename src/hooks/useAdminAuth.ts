@@ -27,17 +27,35 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     try {
       console.log('🔐 useAdminAuth: Fetching admin user for:', userId);
       
-      const { data, error, status, statusText } = await supabase
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 10000)
+      );
+
+      const queryPromise = supabase
         .from('admin_users')
         .select('*')
         .eq('user_id', userId)
         .eq('is_active', true)
         .maybeSingle();
 
+      const result = await Promise.race([
+        queryPromise,
+        timeoutPromise
+      ]) as { data: AdminUser | null; error: { message: string } | null; status: number; statusText: string };
+      
+      const { data, error, status, statusText } = result;
+
       console.log('🔐 useAdminAuth: Query result:', { data, error, status, statusText });
 
       if (error) {
         console.error('🔐 useAdminAuth: Error fetching admin user:', error);
+        
+        // Check if it's the infinite recursion error
+        if (error.message?.includes('infinite recursion')) {
+          throw new Error('Database configuration error: RLS policies need to be fixed. Please contact your administrator.');
+        }
+        
         throw new Error(`Database error: ${error.message}`);
       }
 
@@ -96,13 +114,19 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         } else {
           console.warn('🔐 useAdminAuth: No admin user found - not an admin user');
           setAdminUser(null);
-          setError('Access denied. You are not authorized to access the admin application.');
+          setError('Access denied. You are not authorized to access the admin application. Please contact your administrator to be granted admin privileges.');
           // Don't auto sign out - let them stay on login page
         }
       } catch (err) {
         console.error('🔐 useAdminAuth: Error processing auth state:', err);
         setAdminUser(null);
-        setError(`Error loading admin user data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        if (errorMessage.includes('RLS policies need to be fixed')) {
+          setError('System configuration error. Please contact your administrator immediately.');
+        } else {
+          setError(`Error loading admin user data: ${errorMessage}`);
+        }
       }
     } else {
       console.log('🔐 useAdminAuth: No session, clearing admin user');

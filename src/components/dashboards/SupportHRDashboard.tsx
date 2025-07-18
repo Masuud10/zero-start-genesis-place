@@ -1,153 +1,440 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Users, UserCheck, MessageCircle, Calendar, FileText, Clock } from 'lucide-react';
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
+import UnifiedDashboardLayout from "@/components/dashboard/UnifiedDashboardLayout";
+import {
+  Users,
+  MessageSquare,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Activity,
+  Headphones,
+  FileText,
+  Calendar,
+  Phone,
+  Mail,
+  Settings,
+  TrendingUp,
+  Building2,
+  UserCheck,
+  Bell,
+  ActivitySquare,
+} from "lucide-react";
 
-const SupportHRDashboard: React.FC = () => {
-  return (
-    <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Support & HR Dashboard</h2>
-          <p className="text-muted-foreground">Employee support, HR management, and internal communications</p>
+// Import new Support HR features
+import ClientOnboardingChecklistsPage from "@/components/dashboard/support-hr/ClientOnboardingChecklistsPage";
+import SchoolHealthScoreWidget from "@/components/dashboard/support-hr/SchoolHealthScoreWidget";
+
+const SupportHrDashboard: React.FC = () => {
+  const { adminUser } = useAdminAuthContext();
+
+  const handleQuickAction = (action: string) => {
+    console.log(`Quick action: ${action}`);
+    // Implement quick actions here
+  };
+
+  const stats = [
+    {
+      label: "Active Tickets",
+      value: "23",
+      icon: MessageSquare,
+      description: "Open support requests",
+      color: "text-blue-600",
+    },
+    {
+      label: "Response Time",
+      value: "2.4h",
+      icon: Clock,
+      description: "Average response",
+      color: "text-green-600",
+    },
+    {
+      label: "Satisfaction",
+      value: "4.8/5",
+      icon: CheckCircle,
+      description: "Customer rating",
+      color: "text-purple-600",
+    },
+    {
+      label: "Schools Supported",
+      value: "156",
+      icon: Building2,
+      description: "Active schools",
+      color: "text-emerald-600",
+    },
+  ];
+
+  const quickActions = [
+    {
+      label: "New Ticket",
+      icon: MessageSquare,
+      onClick: () => handleQuickAction("new_ticket"),
+      variant: "default" as const,
+    },
+    {
+      label: "Schedule Call",
+      icon: Phone,
+      onClick: () => handleQuickAction("schedule_call"),
+      variant: "outline" as const,
+    },
+    {
+      label: "Send Update",
+      icon: Mail,
+      onClick: () => handleQuickAction("send_update"),
+      variant: "outline" as const,
+    },
+    {
+      label: "View Reports",
+      icon: FileText,
+      onClick: () => handleQuickAction("view_reports"),
+      variant: "outline" as const,
+    },
+  ];
+
+  const tabs = [
+    {
+      id: "overview",
+      label: "Overview",
+      icon: Activity,
+      content: (
+        <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Support Tickets
+                </CardTitle>
+                <CardDescription>
+                  Recent support requests and their status
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium">System Integration Issue</p>
+                        <p className="text-sm text-gray-600">
+                          Acme School District • 2 hours ago
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-blue-600">
+                      High Priority
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="font-medium">User Training Request</p>
+                        <p className="text-sm text-gray-600">
+                          Bright Future Academy • 1 day ago
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-green-600">
+                      In Progress
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-5 w-5 text-yellow-600" />
+                      <div>
+                        <p className="font-medium">Feature Request</p>
+                        <p className="text-sm text-gray-600">
+                          Learning Center Plus • 2 days ago
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-yellow-600">
+                      Pending
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Performance Metrics
+                </CardTitle>
+                <CardDescription>
+                  Support team performance indicators
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Response Time</span>
+                      <span className="text-sm text-gray-600">2.4 hours</span>
+                    </div>
+                    <Progress value={85} className="h-2" />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">
+                        Resolution Rate
+                      </span>
+                      <span className="text-sm text-gray-600">94.2%</span>
+                    </div>
+                    <Progress value={94.2} className="h-2" />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">
+                        Customer Satisfaction
+                      </span>
+                      <span className="text-sm text-gray-600">4.8/5</span>
+                    </div>
+                    <Progress value={96} className="h-2" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Upcoming Activities
+                </CardTitle>
+                <CardDescription>
+                  Scheduled support activities and events
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <Phone className="h-4 w-4 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        Support Call - Acme School
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Tomorrow 10:00 AM • System integration
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <Users className="h-4 w-4 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium">Training Session</p>
+                      <p className="text-xs text-gray-600">
+                        Next week • Bright Future Academy
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                    <FileText className="h-4 w-4 text-purple-600" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        Documentation Review
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        This Friday • User guides update
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Recent Activities
+                </CardTitle>
+                <CardDescription>
+                  Latest support team activities
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm">
+                      Ticket resolved: System integration issue
+                    </span>
+                    <span className="text-xs text-gray-500 ml-auto">
+                      1h ago
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 p-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm">
+                      Support call completed: User training
+                    </span>
+                    <span className="text-xs text-gray-500 ml-auto">
+                      3h ago
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 p-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm">
+                      New ticket created: Feature request
+                    </span>
+                    <span className="text-xs text-gray-500 ml-auto">
+                      5h ago
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 p-2">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <span className="text-sm">
+                      Follow-up email sent: Learning Center
+                    </span>
+                    <span className="text-xs text-gray-500 ml-auto">
+                      1d ago
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Employees</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">42</div>
-              <p className="text-xs text-muted-foreground">+2 from last month</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
-              <MessageCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">8</div>
-              <p className="text-xs text-muted-foreground">-2 from yesterday</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">3</div>
-              <p className="text-xs text-muted-foreground">Time off requests</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">This Month Reviews</CardTitle>
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">5</div>
-              <p className="text-xs text-muted-foreground">Performance reviews</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Recent Support Tickets */}
+      ),
+    },
+    {
+      id: "onboarding",
+      label: "Client Onboarding",
+      icon: UserCheck,
+      content: <ClientOnboardingChecklistsPage />,
+    },
+    {
+      id: "school-health",
+      label: "School Health",
+      icon: ActivitySquare,
+      content: <SchoolHealthScoreWidget />,
+    },
+    {
+      id: "announcements",
+      label: "Internal Announcements",
+      icon: Bell,
+      content: (
+        <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Support Tickets</CardTitle>
-              <CardDescription>Latest employee support requests</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Internal Announcements
+              </CardTitle>
+              <CardDescription>
+                Company-wide announcements and updates
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { id: 'T-001', title: 'Password Reset Request', user: 'Sarah Johnson', priority: 'high', status: 'open' },
-                  { id: 'T-002', title: 'Equipment Request', user: 'Mike Chen', priority: 'medium', status: 'in_progress' },
-                  { id: 'T-003', title: 'Access Permission Issue', user: 'Emily Davis', priority: 'low', status: 'resolved' },
-                ].map((ticket) => (
-                  <div key={ticket.id} className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">{ticket.title}</p>
-                      <p className="text-xs text-muted-foreground">{ticket.user} • {ticket.id}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={ticket.priority === 'high' ? 'destructive' : ticket.priority === 'medium' ? 'default' : 'secondary'}>
-                        {ticket.priority}
-                      </Badge>
-                      <Badge variant={ticket.status === 'resolved' ? 'default' : 'outline'}>
-                        {ticket.status.replace('_', ' ')}
-                      </Badge>
-                    </div>
+                <div className="flex items-start gap-4 p-4 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="default"
+                      className="bg-green-100 text-green-800"
+                    >
+                      New
+                    </Badge>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="flex-1">
+                    <h4 className="font-medium">
+                      Welcome to the New Academic Trips Feature!
+                    </h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      We are excited to announce the launch of our Academic
+                      Trips management system. This feature will help schools
+                      organize educational trips more efficiently.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Posted 2 days ago by Admin Team
+                    </p>
+                  </div>
+                </div>
 
-          {/* HR Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>HR Quick Actions</CardTitle>
-              <CardDescription>Common HR tasks and processes</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">Employee Onboarding</span>
+                <div className="flex items-start gap-4 p-4 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="secondary"
+                      className="bg-blue-100 text-blue-800"
+                    >
+                      Update
+                    </Badge>
                   </div>
-                  <Badge variant="outline">3 pending</Badge>
+                  <div className="flex-1">
+                    <h4 className="font-medium">
+                      System Maintenance Scheduled
+                    </h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Planned maintenance window this weekend. All systems will
+                      be updated with the latest security patches and
+                      performance improvements.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Posted 1 week ago by Tech Team
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">Time Off Requests</span>
+
+                <div className="flex items-start gap-4 p-4 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="bg-purple-100 text-purple-800"
+                    >
+                      Event
+                    </Badge>
                   </div>
-                  <Badge variant="outline">5 pending</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <UserCheck className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">Performance Reviews</span>
+                  <div className="flex-1">
+                    <h4 className="font-medium">Team Building Event</h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Join us for our monthly team building event. This month
+                      we'll be focusing on improving our support processes and
+                      sharing best practices.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Posted 2 weeks ago by HR Team
+                    </p>
                   </div>
-                  <Badge variant="outline">2 due</Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
+      ),
+    },
+  ];
 
-        {/* Company Announcements */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Company Announcements</CardTitle>
-            <CardDescription>Recent internal communications</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { title: 'Q4 All-Hands Meeting Scheduled', date: '2024-01-15', type: 'meeting' },
-                { title: 'New Health Benefits Package', date: '2024-01-12', type: 'benefits' },
-                { title: 'Office Holiday Schedule Updated', date: '2024-01-10', type: 'policy' },
-              ].map((announcement, index) => (
-                <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{announcement.title}</p>
-                    <p className="text-sm text-muted-foreground">{announcement.date}</p>
-                  </div>
-                  <Badge variant="secondary">{announcement.type}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+  return (
+    <UnifiedDashboardLayout
+      role="support_hr"
+      title="Support & HR Dashboard"
+      description="Manage support tickets, client onboarding, and internal communications."
+      stats={stats}
+      quickActions={quickActions}
+      tabs={tabs}
+    />
   );
 };
 
-export default SupportHRDashboard;
+export default SupportHrDashboard;

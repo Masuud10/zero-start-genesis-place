@@ -41,10 +41,18 @@ import {
   Headphones,
   DollarSign,
   Activity,
+  Search,
+  ActivitySquare,
+  ToggleLeft,
 } from "lucide-react";
 
-// Import dashboard components
+// Import new advanced features
+import DetailedAuditLogsPage from "./super-admin/DetailedAuditLogsPage";
+import SystemHealthStatusPage from "./super-admin/SystemHealthStatusPage";
+import FeatureFlagManagementPage from "./super-admin/FeatureFlagManagementPage";
+import AdminUserManagementPage from "./super-admin/AdminUserManagementPage";
 
+// Import dashboard components
 
 import BillingModule from "@/components/modules/BillingModule";
 import SystemHealthModule from "@/components/modules/SystemHealthModule";
@@ -342,7 +350,7 @@ const EduFamAdminDashboard = () => {
         onValueChange={handleTabChange}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-8 h-12">
+        <TabsList className="grid w-full grid-cols-12 h-12">
           <TabsTrigger
             value="overview"
             className="flex items-center gap-2 text-sm"
@@ -363,6 +371,16 @@ const EduFamAdminDashboard = () => {
           >
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Users</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="admin-users"
+            className="flex items-center gap-2 text-sm"
+            style={{
+              display: adminUser?.role === "super_admin" ? undefined : "none",
+            }}
+          >
+            <Shield className="h-4 w-4" />
+            <span className="hidden sm:inline">Admin Users</span>
           </TabsTrigger>
           <TabsTrigger
             value="analytics"
@@ -393,6 +411,27 @@ const EduFamAdminDashboard = () => {
             <span className="hidden sm:inline">System</span>
           </TabsTrigger>
           <TabsTrigger
+            value="audit-logs"
+            className="flex items-center gap-2 text-sm"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden sm:inline">Audit</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="system-health"
+            className="flex items-center gap-2 text-sm"
+          >
+            <ActivitySquare className="h-4 w-4" />
+            <span className="hidden sm:inline">Health</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="feature-flags"
+            className="flex items-center gap-2 text-sm"
+          >
+            <ToggleLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Features</span>
+          </TabsTrigger>
+          <TabsTrigger
             value="settings"
             className="flex items-center gap-2 text-sm"
           >
@@ -405,7 +444,9 @@ const EduFamAdminDashboard = () => {
         <TabsContent value="overview" className="space-y-6">
           <div className="text-center p-8">
             <h3 className="text-lg font-semibold mb-2">System Overview</h3>
-            <p className="text-muted-foreground">System overview dashboard coming soon.</p>
+            <p className="text-muted-foreground">
+              System overview dashboard coming soon.
+            </p>
           </div>
         </TabsContent>
 
@@ -421,15 +462,26 @@ const EduFamAdminDashboard = () => {
         <TabsContent value="users" className="space-y-6">
           <div className="text-center p-8">
             <h3 className="text-lg font-semibold mb-2">Users Management</h3>
-            <p className="text-muted-foreground">User management module coming soon.</p>
+            <p className="text-muted-foreground">
+              User management module coming soon.
+            </p>
           </div>
+        </TabsContent>
+
+        {/* Admin Users Tab */}
+        <TabsContent value="admin-users" className="space-y-6">
+          {adminUser?.role === "super_admin" ? (
+            <AdminUserManagementPage />
+          ) : null}
         </TabsContent>
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
           <div className="text-center p-8">
             <h3 className="text-lg font-semibold mb-2">Analytics Overview</h3>
-            <p className="text-muted-foreground">Analytics module coming soon.</p>
+            <p className="text-muted-foreground">
+              Analytics module coming soon.
+            </p>
           </div>
         </TabsContent>
 
@@ -451,6 +503,21 @@ const EduFamAdminDashboard = () => {
         {/* Settings Tab */}
         <TabsContent value="settings" className="space-y-6">
           <EduFamSystemSettings />
+        </TabsContent>
+
+        {/* Audit Logs Tab */}
+        <TabsContent value="audit-logs" className="space-y-6">
+          <DetailedAuditLogsPage />
+        </TabsContent>
+
+        {/* System Health Tab */}
+        <TabsContent value="system-health" className="space-y-6">
+          <SystemHealthStatusPage />
+        </TabsContent>
+
+        {/* Feature Flags Tab */}
+        <TabsContent value="feature-flags" className="space-y-6">
+          <FeatureFlagManagementPage />
         </TabsContent>
       </Tabs>
 
