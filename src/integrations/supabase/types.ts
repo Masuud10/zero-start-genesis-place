@@ -9085,6 +9085,10 @@ export type Database = {
         }
         Returns: Json
       }
+      is_admin_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_edufam_admin: {
         Args: { user_id?: string }
         Returns: boolean

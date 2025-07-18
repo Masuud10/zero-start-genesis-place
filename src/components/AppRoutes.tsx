@@ -25,13 +25,15 @@ const AppRoutes = () => {
     userEmail: user?.email,
   });
 
+  // Show loading spinner while authentication is being determined
   if (isLoading) {
+    console.log("🛣️ AppRoutes: Showing loading spinner");
     return <LoadingSpinner />;
   }
 
+  // If no user is authenticated or no admin user found, show login page
   if (!user || !adminUser) {
-    // If no user is logged in, all paths should lead to the login page,
-    // except for the login page itself.
+    console.log("🛣️ AppRoutes: No authenticated admin user, showing login page");
     return (
       <Routes>
         <Route path="/" element={<AdminLandingPage />} />
@@ -41,6 +43,8 @@ const AppRoutes = () => {
       </Routes>
     );
   }
+
+  console.log("🛣️ AppRoutes: Authenticated admin user found, routing to dashboard based on role:", adminUser.role);
 
   // If a user IS logged in and is an admin, route them based on their role.
   // All authenticated routes should use AppContent for consistent layout

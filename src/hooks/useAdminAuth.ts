@@ -77,6 +77,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     setUser(session?.user ?? null);
 
     if (session?.user) {
+      setIsLoading(true); // Ensure loading is set during fetch
       try {
         // Fetch admin user data
         const adminUserData = await fetchAdminUser(session.user.id);
@@ -85,25 +86,30 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         if (adminUserData) {
           setAdminUser(adminUserData);
           setError(null);
-          console.log('🔐 useAdminAuth: Admin user set successfully');
+          console.log('🔐 useAdminAuth: Admin user set successfully', {
+            role: adminUserData.role,
+            email: adminUserData.email,
+            isActive: adminUserData.is_active
+          });
         } else {
-          console.warn('🔐 useAdminAuth: No admin user found, signing out');
+          console.warn('🔐 useAdminAuth: No admin user found - not an admin user');
           setAdminUser(null);
           setError('Access denied. You are not authorized to access the admin application.');
-          // Sign out unauthorized users
-          await supabase.auth.signOut();
+          // Don't auto sign out - let them stay on login page
         }
       } catch (err) {
         console.error('🔐 useAdminAuth: Error processing auth state:', err);
         setAdminUser(null);
         setError('Error loading admin user data');
+      } finally {
+        setIsLoading(false);
       }
     } else {
       setAdminUser(null);
       setError(null);
+      setIsLoading(false);
     }
     
-    setIsLoading(false);
     setIsInitialized(true);
   }, [fetchAdminUser]);
 

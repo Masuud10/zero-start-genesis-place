@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 import { QueryOptimizer, ApiCallWrapper } from '@/utils/apiOptimization';
 
 /**
@@ -8,10 +8,10 @@ import { QueryOptimizer, ApiCallWrapper } from '@/utils/apiOptimization';
  * Uses explicit relationship so PostgREST knows which foreign key to use
  */
 export function useAdminUsersData(refreshKey = 0) {
-  const { user } = useAuth();
+  const { user, adminUser } = useAdminAuthContext();
   
   return useQuery({
-    queryKey: ['admin-users', refreshKey, user?.id, user?.role],
+    queryKey: ['admin-users', refreshKey, user?.id, adminUser?.role],
     queryFn: async () => {
       console.log('👥 Fetching admin users data...');
       const startTime = Date.now();
@@ -21,18 +21,18 @@ export function useAdminUsersData(refreshKey = 0) {
         throw new Error('User authentication required');
       }
       
-      if (!user.role) {
-        throw new Error('User role not loaded yet');
+      if (!adminUser?.role) {
+        throw new Error('Admin user role not loaded yet');
       }
       
-      if (user.role !== 'edufam_admin') {
-        throw new Error('Access denied. Only EduFam/Elimisha administrators can access user data.');
+      if (adminUser.role !== 'super_admin') {
+        throw new Error('Access denied. Only Super administrators can access user data.');
       }
       
       try {
         const result = await ApiCallWrapper.execute(async () => {
           // Validate query parameters
-          QueryOptimizer.validateQueryParams({ user_id: user.id, role: user.role });
+          QueryOptimizer.validateQueryParams({ user_id: user.id, role: adminUser.role });
           
           // Use the secure database function for EduFam admins
           const { data, error } = await supabase.rpc('get_admin_users_data');
@@ -61,8 +61,8 @@ export function useAdminUsersData(refreshKey = 0) {
               return false;
             }
             
-            // Role validation
-            const validRoles = ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin'];
+            // Role validation - updated for new role structure
+            const validRoles = ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'hr'];
             if (!validRoles.includes(userRecord.role)) {
               console.warn('👥 useAdminUsersData: Filtering out user with invalid role:', userRecord.role);
               return false;
@@ -90,7 +90,7 @@ export function useAdminUsersData(refreshKey = 0) {
         throw error;
       }
     },
-    enabled: !!user && !!user.role && (user.role === 'edufam_admin'),
+    enabled: !!user && !!adminUser && adminUser.role === 'super_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
