@@ -7,7 +7,94 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Shield, Building } from "lucide-react";
 import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import loginBackground from "@/assets/login-background.jpg";
+import Lottie from "lottie-react";
+
+// Tree growing animation data
+const treeGrowingAnimation = {
+  "v": "5.7.6",
+  "ip": 0,
+  "op": 300,
+  "w": 512,
+  "h": 512,
+  "nm": "Tree Growing",
+  "ddd": 0,
+  "assets": [],
+  "layers": [
+    {
+      "ddd": 0,
+      "ind": 1,
+      "ty": 4,
+      "nm": "Tree Base",
+      "sr": 1,
+      "ks": {
+        "o": {"a": 0, "k": 100},
+        "r": {"a": 0, "k": 0},
+        "p": {"a": 0, "k": [256, 400]},
+        "a": {"a": 0, "k": [0, 0]},
+        "s": {"a": 1, "k": [
+          {"i": {"x": [0.833], "y": [0.833]}, "o": {"x": [0.167], "y": [0.167]}, "t": 0, "s": [20]},
+          {"t": 150, "s": [100]}
+        ]}
+      },
+      "shapes": [
+        {
+          "ty": "gr",
+          "it": [
+            {
+              "ty": "rc",
+              "p": {"a": 0, "k": [0, 0]},
+              "s": {"a": 0, "k": [30, 80]},
+              "r": {"a": 0, "k": 8}
+            },
+            {
+              "ty": "fl",
+              "c": {"a": 0, "k": [0.4, 0.2, 0.1, 1]}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ddd": 0,
+      "ind": 2,
+      "ty": 4,
+      "nm": "Tree Crown",
+      "sr": 1,
+      "ks": {
+        "o": {"a": 1, "k": [
+          {"i": {"x": [0.833], "y": [0.833]}, "o": {"x": [0.167], "y": [0.167]}, "t": 80, "s": [0]},
+          {"t": 220, "s": [100]}
+        ]},
+        "r": {"a": 0, "k": 0},
+        "p": {"a": 0, "k": [256, 320]},
+        "a": {"a": 0, "k": [0, 0]},
+        "s": {"a": 1, "k": [
+          {"i": {"x": [0.833], "y": [0.833]}, "o": {"x": [0.167], "y": [0.167]}, "t": 80, "s": [10]},
+          {"t": 220, "s": [120]}
+        ]}
+      },
+      "shapes": [
+        {
+          "ty": "gr",
+          "it": [
+            {
+              "ty": "el",
+              "p": {"a": 0, "k": [0, 0]},
+              "s": {"a": 0, "k": [100, 80]}
+            },
+            {
+              "ty": "fl",
+              "c": {"a": 0, "k": [0.2, 0.7, 0.3, 1]}
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "g": "Lovable Generated Tree Animation"
+  }
+};
 
 interface AdminLoginFormProps {
   onSuccess: () => void;
@@ -123,7 +210,7 @@ function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
 
       <Button
         type="submit"
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition-colors duration-200"
+        className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white py-2.5 rounded-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
         disabled={isLoading || isSubmitting}
       >
         {isLoading || isSubmitting ? (
@@ -142,9 +229,85 @@ function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
   );
 }
 
+// Motivational quotes for the left column
+const MOTIVATIONAL_QUOTES = [
+  {
+    text: "The art of teaching is the art of assisting discovery.",
+    author: "Mark Van Doren"
+  },
+  {
+    text: "What we learn with pleasure we never forget.",
+    author: "Alfred Mercier"
+  },
+  {
+    text: "The future of the world is in my classroom today.",
+    author: "Ivan Welton Fitzwater"
+  },
+  {
+    text: "Great things in business are never done by one person. They're done by a team of people.",
+    author: "Steve Jobs"
+  },
+  {
+    text: "Education is the most powerful weapon which you can use to change the world.",
+    author: "Nelson Mandela"
+  },
+  {
+    text: "Innovation distinguishes between a leader and a follower.",
+    author: "Steve Jobs"
+  },
+  {
+    text: "The best way to predict the future is to create it.",
+    author: "Peter Drucker"
+  },
+  {
+    text: "Every child deserves a champion - an adult who will never give up on them.",
+    author: "Rita Pierson"
+  }
+];
+
 const AdminLandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, adminUser, isLoading } = useAdminAuthContext();
+  const [currentQuote, setCurrentQuote] = useState(MOTIVATIONAL_QUOTES[0]);
+  const [totalStudents, setTotalStudents] = useState<number | null>(null);
+  const [greeting, setGreeting] = useState("");
+
+  // Set dynamic greeting based on Nairobi time
+  useEffect(() => {
+    const getNairobiTime = () => {
+      const now = new Date();
+      const nairobiTime = new Date(now.toLocaleString("en-US", { timeZone: "Africa/Nairobi" }));
+      const hour = nairobiTime.getHours();
+      
+      if (hour < 12) return "Good morning,";
+      if (hour < 18) return "Good afternoon,";
+      return "Good evening,";
+    };
+    
+    setGreeting(getNairobiTime());
+  }, []);
+
+  // Set random quote on page load
+  useEffect(() => {
+    const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+    setCurrentQuote(randomQuote);
+  }, []);
+
+  // Fetch total students count
+  useEffect(() => {
+    const fetchStudentCount = async () => {
+      try {
+        // Mock data for now - in production this would be a real API call
+        setTimeout(() => {
+          setTotalStudents(Math.floor(Math.random() * 5000) + 8000); // Random number between 8000-13000
+        }, 2000);
+      } catch (error) {
+        console.error("Failed to fetch student count:", error);
+      }
+    };
+    
+    fetchStudentCount();
+  }, []);
 
   // Check if already authenticated
   useEffect(() => {
@@ -171,37 +334,70 @@ const AdminLandingPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-2 sm:p-4">
-      <Card className="w-full max-w-6xl shadow-2xl rounded-2xl overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-2 sm:p-4">
+      <Card className="w-full max-w-6xl shadow-2xl rounded-2xl overflow-hidden bg-white">
         <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px] lg:min-h-[600px]">
-          {/* Left Column - Branding/Image */}
-          <div
-            className="hidden lg:flex relative bg-cover bg-center bg-no-repeat flex-col justify-between p-6 xl:p-8 text-white"
-            style={{
-              backgroundImage: `linear-gradient(rgba(0, 71, 171, 0.7), rgba(0, 58, 140, 0.7)), url(${loginBackground})`,
-            }}
-          >
+          {/* Left Column - Dynamic Inspiration */}
+          <div className="hidden lg:flex relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex-col justify-between p-6 xl:p-8 text-white overflow-hidden">
+            {/* Subtle background pattern */}
+            <div className="absolute inset-0 opacity-5" style={{ 
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` 
+            }}></div>
+            
             {/* Logo at top */}
-            <div className="flex items-center">
+            <div className="flex items-center z-10 relative">
               <img
                 src="/lovable-uploads/b42612dd-99c7-4d0b-94d0-fcf611535608.png"
                 alt="Edufam Logo"
-                className="h-10 xl:h-12 w-auto"
+                className="h-10 xl:h-12 w-auto drop-shadow-lg"
               />
             </div>
 
-            {/* Content at bottom */}
-            <div>
-              <div className="flex items-center mb-4">
-                <Building className="h-8 w-8 mr-3" />
-                <h2 className="text-2xl xl:text-3xl font-bold">
-                  Admin Dashboard
-                </h2>
+            {/* Growing Tree Animation - Center */}
+            <div className="flex-1 flex flex-col items-center justify-center z-10 relative">
+              <div className="w-48 h-48 xl:w-56 xl:h-56 mb-6">
+                <Lottie
+                  animationData={treeGrowingAnimation}
+                  loop={true}
+                  autoplay={true}
+                  style={{ width: "100%", height: "100%" }}
+                />
               </div>
-              <p className="text-base xl:text-lg opacity-90">
-                Secure access to EduFam's administrative tools and analytics.
-                Monitor schools, manage users, and oversee system operations.
-              </p>
+              
+              {/* Dynamic Quote */}
+              <div className="text-center max-w-md animate-fade-in">
+                <blockquote className="text-lg xl:text-xl font-light leading-relaxed text-white/90 mb-4 italic">
+                  "{currentQuote.text}"
+                </blockquote>
+                <cite className="text-sm xl:text-base text-white/70 font-medium">
+                  — {currentQuote.author}
+                </cite>
+              </div>
+            </div>
+
+            {/* Impact Metric at bottom */}
+            <div className="text-center z-10 relative">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                {totalStudents !== null ? (
+                  <div className="animate-fade-in">
+                    <p className="text-sm xl:text-base text-white/80 mb-1">
+                      Powering the education of
+                    </p>
+                    <p className="text-2xl xl:text-3xl font-bold text-white">
+                      {totalStudents.toLocaleString()}
+                    </p>
+                    <p className="text-sm xl:text-base text-white/80">
+                      students and counting
+                    </p>
+                  </div>
+                ) : (
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-white/20 rounded mb-2"></div>
+                    <div className="h-8 bg-white/20 rounded mb-2"></div>
+                    <div className="h-4 bg-white/20 rounded"></div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -216,19 +412,26 @@ const AdminLandingPage: React.FC = () => {
               />
             </div>
 
+            {/* Dynamic Greeting */}
+            <div className="text-center lg:text-left mb-2">
+              <p className="text-lg text-muted-foreground font-medium">
+                {greeting}
+              </p>
+            </div>
+
             {/* Header */}
             <div className="mb-6 lg:mb-8">
               <div className="flex items-center justify-center lg:justify-start mb-3">
-                <Shield className="h-6 w-6 text-blue-600 mr-2" />
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  Admin Access
+                <Shield className="h-6 w-6 text-primary mr-2" />
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                  Welcome to EduFam
                 </h1>
               </div>
-              <p className="text-gray-600 text-base sm:text-lg text-center lg:text-left">
+              <p className="text-muted-foreground text-base sm:text-lg text-center lg:text-left">
                 Sign in to your admin dashboard
               </p>
               <div className="mt-2 text-center lg:text-left">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                   <Shield className="h-3 w-3 mr-1" />
                   Restricted Access
                 </span>
@@ -242,10 +445,10 @@ const AdminLandingPage: React.FC = () => {
 
             {/* Footer */}
             <div className="text-center">
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 EduFam Administration Portal
               </p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Authorized personnel only
               </p>
             </div>
