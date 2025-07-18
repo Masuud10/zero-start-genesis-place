@@ -27,16 +27,18 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     try {
       console.log('🔐 useAdminAuth: Fetching admin user for:', userId);
       
-      const { data, error } = await supabase
+      const { data, error, status, statusText } = await supabase
         .from('admin_users')
         .select('*')
         .eq('user_id', userId)
         .eq('is_active', true)
         .maybeSingle();
 
+      console.log('🔐 useAdminAuth: Query result:', { data, error, status, statusText });
+
       if (error) {
         console.error('🔐 useAdminAuth: Error fetching admin user:', error);
-        return null;
+        throw new Error(`Database error: ${error.message}`);
       }
 
       if (!data) {
@@ -48,7 +50,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       return data as AdminUser;
     } catch (err) {
       console.error('🔐 useAdminAuth: Error in fetchAdminUser:', err);
-      return null;
+      throw err; // Re-throw to be handled by caller
     }
   }, []);
 
@@ -78,6 +80,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
 
     if (session?.user) {
       try {
+        console.log('🔐 useAdminAuth: About to fetch admin user data...');
         // Fetch admin user data
         const adminUserData = await fetchAdminUser(session.user.id);
         console.log('🔐 useAdminAuth: Admin user data received:', adminUserData);
@@ -99,13 +102,15 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       } catch (err) {
         console.error('🔐 useAdminAuth: Error processing auth state:', err);
         setAdminUser(null);
-        setError('Error loading admin user data');
+        setError(`Error loading admin user data: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
     } else {
+      console.log('🔐 useAdminAuth: No session, clearing admin user');
       setAdminUser(null);
       setError(null);
     }
     
+    console.log('🔐 useAdminAuth: Setting loading to false');
     setIsLoading(false);
     setIsInitialized(true);
   }, [fetchAdminUser]);
