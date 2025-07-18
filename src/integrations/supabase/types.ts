@@ -111,6 +111,146 @@ export type Database = {
           },
         ]
       }
+      academic_trips: {
+        Row: {
+          accommodation_details: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          cost_per_student: number | null
+          created_at: string | null
+          created_by: string | null
+          current_participants: number | null
+          description: string | null
+          destination: string
+          emergency_contact: string | null
+          emergency_phone: string | null
+          end_date: string
+          id: string
+          itinerary: Json | null
+          max_participants: number | null
+          medical_requirements: string | null
+          organizer_id: string | null
+          required_documents: Json | null
+          requirements: string | null
+          safety_guidelines: string | null
+          school_id: string
+          start_date: string
+          status: string | null
+          transportation_details: string | null
+          trip_name: string
+          trip_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accommodation_details?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          cost_per_student?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          current_participants?: number | null
+          description?: string | null
+          destination: string
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          end_date: string
+          id?: string
+          itinerary?: Json | null
+          max_participants?: number | null
+          medical_requirements?: string | null
+          organizer_id?: string | null
+          required_documents?: Json | null
+          requirements?: string | null
+          safety_guidelines?: string | null
+          school_id: string
+          start_date: string
+          status?: string | null
+          transportation_details?: string | null
+          trip_name: string
+          trip_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accommodation_details?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          cost_per_student?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          current_participants?: number | null
+          description?: string | null
+          destination?: string
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          end_date?: string
+          id?: string
+          itinerary?: Json | null
+          max_participants?: number | null
+          medical_requirements?: string | null
+          organizer_id?: string | null
+          required_documents?: Json | null
+          requirements?: string | null
+          safety_guidelines?: string | null
+          school_id?: string
+          start_date?: string
+          status?: string | null
+          transportation_details?: string | null
+          trip_name?: string
+          trip_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_trips_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_trips_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_trips_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "academic_trips_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "academic_trips_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "academic_trips_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "academic_trips_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       academic_years: {
         Row: {
           created_at: string | null
@@ -8360,6 +8500,207 @@ export type Database = {
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_activities: {
+        Row: {
+          activity_name: string
+          activity_type: string | null
+          cost: number | null
+          created_at: string | null
+          description: string | null
+          end_time: string | null
+          id: string
+          location: string | null
+          requirements: string | null
+          responsible_person: string | null
+          safety_notes: string | null
+          start_time: string | null
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          activity_name: string
+          activity_type?: string | null
+          cost?: number | null
+          created_at?: string | null
+          description?: string | null
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          requirements?: string | null
+          responsible_person?: string | null
+          safety_notes?: string | null
+          start_time?: string | null
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          activity_name?: string
+          activity_type?: string | null
+          cost?: number | null
+          created_at?: string | null
+          description?: string | null
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          requirements?: string | null
+          responsible_person?: string | null
+          safety_notes?: string | null
+          start_time?: string | null
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_activities_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "academic_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_expenses: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          created_at: string | null
+          description: string
+          expense_category: string
+          expense_date: string
+          id: string
+          notes: string | null
+          paid_by: string | null
+          receipt_url: string | null
+          status: string | null
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          approved_by?: string | null
+          created_at?: string | null
+          description: string
+          expense_category: string
+          expense_date: string
+          id?: string
+          notes?: string | null
+          paid_by?: string | null
+          receipt_url?: string | null
+          status?: string | null
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          created_at?: string | null
+          description?: string
+          expense_category?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          paid_by?: string | null
+          receipt_url?: string | null
+          status?: string | null
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_expenses_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_expenses_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_expenses_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "academic_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_participants: {
+        Row: {
+          amount_paid: number | null
+          created_at: string | null
+          documents_submitted: Json | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          id: string
+          medical_clearance: boolean | null
+          notes: string | null
+          parent_consent: boolean | null
+          payment_status: string | null
+          registration_date: string | null
+          special_requirements: string | null
+          status: string | null
+          student_id: string
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          created_at?: string | null
+          documents_submitted?: Json | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          id?: string
+          medical_clearance?: boolean | null
+          notes?: string | null
+          parent_consent?: boolean | null
+          payment_status?: string | null
+          registration_date?: string | null
+          special_requirements?: string | null
+          status?: string | null
+          student_id: string
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          created_at?: string | null
+          documents_submitted?: Json | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          id?: string
+          medical_clearance?: boolean | null
+          notes?: string | null
+          parent_consent?: boolean | null
+          payment_status?: string | null
+          registration_date?: string | null
+          special_requirements?: string | null
+          status?: string | null
+          student_id?: string
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_participants_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_participants_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "academic_trips"
             referencedColumns: ["id"]
           },
         ]
