@@ -8666,6 +8666,17 @@ export type Database = {
         Args: { p_school_id: string }
         Returns: Json
       }
+      check_hr_user_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          name: string
+          school_id: string
+          status: string
+          issue: string
+        }[]
+      }
       check_rate_limit: {
         Args: {
           p_identifier: string
@@ -8994,6 +9005,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_hr_users_by_school: {
+        Args: { school_param: string }
+        Returns: {
+          id: string
+          email: string
+          name: string
+          role: string
+          school_id: string
+          status: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_maintenance_message: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -9137,6 +9161,14 @@ export type Database = {
         Args: { user_role: string }
         Returns: boolean
       }
+      reset_hr_user_password: {
+        Args: { user_email: string }
+        Returns: Json
+      }
+      setup_hr_user: {
+        Args: { user_email: string; user_name: string; school_id?: string }
+        Returns: Json
+      }
       test_hr_authentication: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -9199,6 +9231,10 @@ export type Database = {
       }
       validate_teacher_grade_submission: {
         Args: { p_grade_data: Json }
+        Returns: Json
+      }
+      verify_all_hr_users: {
+        Args: Record<PropertyKey, never>
         Returns: Json
       }
       verify_hr_access: {
