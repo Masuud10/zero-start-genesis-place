@@ -33,15 +33,10 @@ const AnnouncementsModule = () => {
   }
 
   const getAudienceOptions = () => {
-    if (adminUser?.role === 'edufam_admin') {
+    if (adminUser?.role === 'super_admin') {
       return ['principals', 'school_owners', 'parents', 'teachers'];
     }
-    if (adminUser?.role === 'principal') {
-      return ['teachers', 'parents'];
-    }
-    if (adminUser?.role === 'school_owner') {
-      return ['principals', 'teachers', 'parents'];
-    }
+    // For other admin roles, return empty array since they work with school-specific roles
     return [];
   };
 

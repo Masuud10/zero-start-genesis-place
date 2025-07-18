@@ -58,7 +58,7 @@ const TeacherSupportModule = () => {
           title: ticketData.title,
           description: ticketData.description,
           created_by: adminUser?.id,
-          school_id: adminUser?.school_id,
+          school_id: null, // Admin users don't have school_id
           status: 'open',
           priority: 'medium',
           category: 'general'

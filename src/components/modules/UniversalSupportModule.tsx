@@ -16,7 +16,6 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
-import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 
 interface SupportTicket {
   id: string;
@@ -74,7 +73,7 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
           title: ticketData.title,
           description: ticketData.description,
           created_by: adminUser?.id,
-          school_id: adminUser?.school_id,
+          school_id: null, // Admin users don't have school_id
           status: "open",
           priority: "medium",
           category: "general",

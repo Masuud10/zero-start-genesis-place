@@ -73,9 +73,7 @@ const SchoolsManagementModule: React.FC = () => {
     const matchesSearch =
       school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       school.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      school.registration_number
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      school.phone?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" || school.status === statusFilter;
@@ -304,7 +302,7 @@ const SchoolsManagementModule: React.FC = () => {
                       <div className="flex items-center space-x-2 mb-1">
                         <h3 className="font-semibold">{school.name}</h3>
                         {getStatusBadge(school.status)}
-                        {getSchoolTypeBadge(school.school_type)}
+                        {getSchoolTypeBadge("Primary")}
                       </div>
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                         <div className="flex items-center space-x-1">
@@ -317,30 +315,26 @@ const SchoolsManagementModule: React.FC = () => {
                             <span>{school.phone}</span>
                           </div>
                         )}
-                        {school.location && (
+                        {school.address && (
                           <div className="flex items-center space-x-1">
                             <MapPin className="h-3 w-3" />
-                            <span>{school.location}</span>
+                            <span>{school.address}</span>
                           </div>
                         )}
                       </div>
-                      {school.registration_number && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Reg: {school.registration_number}
-                        </div>
-                      )}
+                      <div className="text-xs text-muted-foreground mt-1">
+                        ID: {school.id.slice(0, 8)}...
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <div className="text-right text-sm text-muted-foreground">
                       <div>Created: {formatDate(school.created_at)}</div>
-                      {school.website_url && (
-                        <div className="flex items-center space-x-1">
-                          <Globe className="h-3 w-3" />
-                          <span>Website</span>
-                        </div>
-                      )}
+                      <div className="flex items-center space-x-1">
+                        <Users className="h-3 w-3" />
+                        <span>Students: {(school as any).total_students || 0}</span>
+                      </div>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Button variant="ghost" size="sm">

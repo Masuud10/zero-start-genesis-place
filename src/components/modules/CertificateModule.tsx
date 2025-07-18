@@ -264,7 +264,7 @@ const CertificateModule: React.FC = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {templates.map((template) => {
-              const isGenerating =
+              const templateGenerating =
                 selectedTemplate === template.id && isGenerating;
 
               return (
@@ -301,10 +301,10 @@ const CertificateModule: React.FC = () => {
                           className="flex-1"
                           onClick={() => handleGenerateCertificate(template.id)}
                           disabled={
-                            isGenerating || template.status !== "active"
+                            templateGenerating || template.status !== "active"
                           }
                         >
-                          {isGenerating ? (
+                          {templateGenerating ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin mr-2" />
                               Generating...

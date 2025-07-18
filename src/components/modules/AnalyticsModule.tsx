@@ -47,7 +47,7 @@ const AnalyticsModule: React.FC = () => {
   }).length;
 
   const schoolTypes = schools.reduce((acc, school) => {
-    const type = school.school_type || "Unknown";
+    const type = "Primary"; // Default since school_type is not available in current data
     acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);

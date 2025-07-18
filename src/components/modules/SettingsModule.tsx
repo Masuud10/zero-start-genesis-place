@@ -35,7 +35,6 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 // SystemMaintenanceControl removed as part of school-specific cleanup
 import AdminCommunicationsManager from "./settings/AdminCommunicationsManager";
-import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 
 interface SystemSettings {
   maintenance_mode: boolean;
