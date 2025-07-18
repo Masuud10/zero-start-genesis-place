@@ -9292,34 +9292,26 @@ export type Database = {
           email: string
           phone: string
           address: string
-          location: string
-          created_at: string
-          updated_at: string
-          owner_id: string
-          logo_url: string
-          website_url: string
-          motto: string
-          slogan: string
-          registration_number: string
-          year_established: number
-          owner_information: string
-          school_type: string
           status: string
-          term_structure: string
+          subscription_plan: string
+          total_students: number
+          total_teachers: number
+          created_at: string
+          last_activity: string
         }[]
       }
       get_admin_users_data: {
         Args: Record<PropertyKey, never>
         Returns: {
           id: string
-          name: string
           email: string
+          name: string
           role: string
-          created_at: string
-          updated_at: string
-          status: string
           school_id: string
           school_name: string
+          status: string
+          created_at: string
+          last_login_at: string
         }[]
       }
       get_class_report_data: {
@@ -9328,7 +9320,7 @@ export type Database = {
       }
       get_current_admin_role: {
         Args: Record<PropertyKey, never>
-        Returns: Database["public"]["Enums"]["admin_role"]
+        Returns: string
       }
       get_current_user_owned_school_id: {
         Args: Record<PropertyKey, never>

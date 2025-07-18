@@ -37,8 +37,8 @@ import { supabase } from "@/integrations/supabase/client";
 const ADMIN_ROLES = [
   { value: "super_admin", label: "Super Admin" },
   { value: "finance", label: "Finance Officer" },
-  { value: "marketing_sales", label: "Sales & Marketing" },
-  { value: "engineer", label: "Software Engineer" },
+  { value: "sales_marketing", label: "Sales & Marketing" },
+  { value: "software_engineer", label: "Software Engineer" },
   { value: "support_hr", label: "Support HR" },
 ] as const;
 
