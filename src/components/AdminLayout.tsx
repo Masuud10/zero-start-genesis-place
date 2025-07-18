@@ -13,6 +13,7 @@ import {
   Activity,
   LogOut,
   User,
+  Crown,
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -29,8 +30,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const getRoleIcon = (role: string) => {
     switch (role) {
       case "super_admin":
+        return <Crown className="h-4 w-4 text-yellow-600" />;
       case "edufam_admin":
-        return <Building2 className="h-4 w-4" />;
+        return <Building2 className="h-4 w-4 text-blue-600" />;
       case "support_hr":
         return <Headphones className="h-4 w-4" />;
       case "software_engineer":
@@ -63,6 +65,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     }
   };
 
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case "super_admin":
+        return "default";
+      case "edufam_admin":
+        return "secondary";
+      default:
+        return "outline";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -84,7 +97,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               {adminUser && (
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   {getRoleIcon(adminUser.role)}
-                  <span>{getRoleLabel(adminUser.role)}</span>
+                  <span className="font-medium">
+                    {getRoleLabel(adminUser.role)}
+                  </span>
                   <span>•</span>
                   <span>{adminUser.name}</span>
                 </div>

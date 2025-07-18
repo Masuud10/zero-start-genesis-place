@@ -4,10 +4,7 @@ import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 import { checkDatabaseConnection } from "@/integrations/supabase/client";
 import LoadingScreen from "@/components/common/LoadingScreen";
 import { ErrorState } from "@/components/common/LoadingStates";
-import UnauthorizedPage from "@/components/UnauthorizedPage";
 import AdminLayout from "@/components/AdminLayout";
-import { RouteGuard } from "@/utils/routeGuard";
-import { AuthUser } from "@/types/auth";
 
 interface AppContentProps {
   children?: React.ReactNode;
@@ -20,18 +17,12 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
     isLoading: authLoading,
     error: authError,
   } = useAdminAuthContext();
-  
+
   const [dbStatus, setDbStatus] = useState<{
     connected: boolean;
     error?: string;
   } | null>(null);
   const [isCheckingDb, setIsCheckingDb] = useState(true);
-  const [accessCheck, setAccessCheck] = useState<{
-    hasAccess: boolean;
-    redirectTo?: string;
-    error?: string;
-  } | null>(null);
-
   // Check database connection
   useEffect(() => {
     const checkConnection = async () => {
@@ -48,50 +39,6 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
 
     checkConnection();
   }, []);
-
-  // Check route access when user changes
-  useEffect(() => {
-    const checkRouteAccess = async () => {
-      if (!user || !adminUser) {
-        setAccessCheck(null);
-        return;
-      }
-
-      const currentPath = window.location.pathname;
-      const routeConfig = RouteGuard.getRouteConfig(currentPath);
-
-      // Convert admin user to AuthUser for compatibility
-      const authUser: AuthUser = {
-        id: adminUser.user_id,
-        email: adminUser.email,
-        name: adminUser.name,
-        role: adminUser.role,
-        school_id: null, // Admin users don't have school assignments
-        avatar_url: null,
-        created_at: adminUser.created_at,
-        updated_at: adminUser.updated_at,
-        user_metadata: {},
-        app_metadata: {},
-        mfa_enabled: false,
-        last_login_at: adminUser.last_login_at,
-        last_login_ip: undefined,
-      };
-
-      const access = await RouteGuard.checkAccess(authUser, routeConfig);
-      setAccessCheck(access);
-
-      // If access is denied and we have a redirect, navigate
-      if (!access.hasAccess && access.redirectTo) {
-        if (access.redirectTo === "/unauthorized") {
-          // Stay on current page, UnauthorizedPage will be rendered
-          return;
-        }
-        window.location.href = access.redirectTo;
-      }
-    };
-
-    checkRouteAccess();
-  }, [user, adminUser]);
 
   // Defensive check for auth state
   if (!user || !adminUser) {
@@ -117,7 +64,6 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
     email: user.email,
     dbStatus,
     isCheckingDb,
-    accessCheck,
   });
 
   // Show loading while checking database or auth
@@ -169,18 +115,6 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
         />
       </div>
     );
-  }
-
-  // Check route access
-  if (accessCheck && !accessCheck.hasAccess) {
-    console.log("🎯 AppContent: Access denied:", accessCheck.error);
-
-    if (accessCheck.redirectTo === "/unauthorized") {
-      return <UnauthorizedPage />;
-    }
-
-    // For other redirects, show loading while redirecting
-    return <LoadingScreen />;
   }
 
   // User is authenticated, has a valid role, and has access - show the main application

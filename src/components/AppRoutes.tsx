@@ -6,6 +6,7 @@ import AdminLandingPage from "@/pages/AdminLandingPage";
 import SupportHrDashboard from "@/pages/SupportHrDashboard";
 import AppContent from "@/components/AppContent";
 import AuthDebugger from "@/components/debug/AuthDebugger";
+import AuthenticationTest from "@/components/debug/AuthenticationTest";
 
 // Import dashboard components for different roles
 import EduFamAdminDashboard from "@/components/dashboard/EduFamAdminDashboard";
@@ -33,18 +34,24 @@ const AppRoutes = () => {
 
   // If no user is authenticated or no admin user found, show login page
   if (!user || !adminUser) {
-    console.log("🛣️ AppRoutes: No authenticated admin user, showing login page");
+    console.log(
+      "🛣️ AppRoutes: No authenticated admin user, showing login page"
+    );
     return (
       <Routes>
         <Route path="/" element={<AdminLandingPage />} />
         <Route path="/login" element={<AdminLandingPage />} />
         <Route path="/debug" element={<AuthDebugger />} />
+        <Route path="/test" element={<AuthenticationTest />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
   }
 
-  console.log("🛣️ AppRoutes: Authenticated admin user found, routing to dashboard based on role:", adminUser.role);
+  console.log(
+    "🛣️ AppRoutes: Authenticated admin user found, routing to dashboard based on role:",
+    adminUser.role
+  );
 
   // If a user IS logged in and is an admin, route them based on their role.
   // All authenticated routes should use AppContent for consistent layout
@@ -76,6 +83,54 @@ const AppRoutes = () => {
               </AppContent>
             }
           />
+          <Route
+            path="/test"
+            element={
+              <AppContent>
+                <AuthenticationTest />
+              </AppContent>
+            }
+          />
+          {/* Add other super_admin specific routes here */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      );
+    case "edufam_admin":
+      return (
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={
+              <AppContent>
+                <EduFamAdminDashboard />
+              </AppContent>
+            }
+          />
+          <Route
+            path="/support-hr"
+            element={
+              <AppContent>
+                <SupportHrDashboard />
+              </AppContent>
+            }
+          />
+          <Route
+            path="/debug"
+            element={
+              <AppContent>
+                <AuthDebugger />
+              </AppContent>
+            }
+          />
+          <Route
+            path="/test"
+            element={
+              <AppContent>
+                <AuthenticationTest />
+              </AppContent>
+            }
+          />
+          {/* Add other edufam_admin specific routes here */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       );
@@ -95,6 +150,14 @@ const AppRoutes = () => {
             element={
               <AppContent>
                 <AuthDebugger />
+              </AppContent>
+            }
+          />
+          <Route
+            path="/test"
+            element={
+              <AppContent>
+                <AuthenticationTest />
               </AppContent>
             }
           />
@@ -121,6 +184,14 @@ const AppRoutes = () => {
               </AppContent>
             }
           />
+          <Route
+            path="/test"
+            element={
+              <AppContent>
+                <AuthenticationTest />
+              </AppContent>
+            }
+          />
           {/* Add other software_engineer specific routes here */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -144,6 +215,14 @@ const AppRoutes = () => {
               </AppContent>
             }
           />
+          <Route
+            path="/test"
+            element={
+              <AppContent>
+                <AuthenticationTest />
+              </AppContent>
+            }
+          />
           {/* Add other sales_marketing specific routes here */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -164,6 +243,14 @@ const AppRoutes = () => {
             element={
               <AppContent>
                 <AuthDebugger />
+              </AppContent>
+            }
+          />
+          <Route
+            path="/test"
+            element={
+              <AppContent>
+                <AuthenticationTest />
               </AppContent>
             }
           />

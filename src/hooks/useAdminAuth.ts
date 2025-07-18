@@ -77,7 +77,6 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     setUser(session?.user ?? null);
 
     if (session?.user) {
-      setIsLoading(true); // Ensure loading is set during fetch
       try {
         // Fetch admin user data
         const adminUserData = await fetchAdminUser(session.user.id);
@@ -101,15 +100,13 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         console.error('🔐 useAdminAuth: Error processing auth state:', err);
         setAdminUser(null);
         setError('Error loading admin user data');
-      } finally {
-        setIsLoading(false);
       }
     } else {
       setAdminUser(null);
       setError(null);
-      setIsLoading(false);
     }
     
+    setIsLoading(false);
     setIsInitialized(true);
   }, [fetchAdminUser]);
 
@@ -125,6 +122,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('🔐 useAdminAuth: Processing SIGNED_IN event');
+          setIsLoading(true);
           await processAuthState(session);
         } else if (event === 'SIGNED_OUT') {
           console.log('🔐 useAdminAuth: Processing SIGNED_OUT event');
@@ -146,6 +144,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     // Check for existing session
     const initializeAuth = async () => {
       try {
+        console.log('🔐 useAdminAuth: Initializing auth...');
         const { data: { session } } = await supabase.auth.getSession();
         if (isMounted) {
           await processAuthState(session);
@@ -182,6 +181,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       if (authError) {
         console.error('🔐 useAdminAuth: Auth error:', authError);
         setError(authError.message);
+        setIsLoading(false);
         return { error: authError.message };
       }
 
@@ -191,14 +191,14 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         return { error: null };
       }
 
+      setIsLoading(false);
       return { error: 'Authentication failed' };
     } catch (err) {
       console.error('🔐 useAdminAuth: Sign in exception:', err);
       const errorMsg = 'An unexpected error occurred during sign in.';
       setError(errorMsg);
-      return { error: errorMsg };
-    } finally {
       setIsLoading(false);
+      return { error: errorMsg };
     }
   };
 
@@ -220,8 +220,8 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
   const hasPermission = (permission: string): boolean => {
     if (!adminUser) return false;
     
-    // Super admin has all permissions
-    if (adminUser.role === 'super_admin') return true;
+    // Super admin and edufam_admin have all permissions
+    if (adminUser.role === 'super_admin' || adminUser.role === 'edufam_admin') return true;
     
     // Check specific permission
     return Boolean(adminUser.permissions?.[permission]);
