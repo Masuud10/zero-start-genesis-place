@@ -9245,12 +9245,10 @@ export type Database = {
     Enums: {
       admin_role:
         | "super_admin"
-        | "engineer"
-        | "support_hr"
-        | "marketing_sales"
-        | "finance"
-        | "edufam_admin"
         | "software_engineer"
+        | "support_hr"
+        | "sales_marketing"
+        | "finance"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -9380,12 +9378,10 @@ export const Constants = {
     Enums: {
       admin_role: [
         "super_admin",
-        "engineer",
-        "support_hr",
-        "marketing_sales",
-        "finance",
-        "edufam_admin",
         "software_engineer",
+        "support_hr",
+        "sales_marketing",
+        "finance",
       ],
     },
   },

@@ -19,8 +19,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  // For edufam_admin users, use the comprehensive AdminSidebarNavigation
-  if (adminUser?.role === "edufam_admin") {
+  // For super_admin users, use the comprehensive AdminSidebarNavigation
+  if (adminUser?.role === "super_admin") {
     return <AdminSidebarNavigation />;
   }
 
@@ -28,61 +28,40 @@ const Sidebar: React.FC<SidebarProps> = ({
   const getMenuItems = () => {
     const userRole = adminUser?.role;
 
-    if (userRole === "super_admin") {
-      return [
-        {
-          id: "dashboard",
-          label: "Admin Dashboard",
-          icon: "📊",
-          path: "/dashboard",
-        },
-        {
-          id: "analytics",
-          label: "System Analytics",
-          icon: "📈",
-          path: "/analytics",
-        },
-        {
-          id: "schools",
-          label: "Schools Management",
-          icon: "🏫",
-          path: "/schools",
-        },
-        { id: "users", label: "User Management", icon: "👥", path: "/users" },
-        {
-          id: "billing",
-          label: "Billing & Subscriptions",
-          icon: "💰",
-          path: "/billing",
-        },
-        {
-          id: "company-management",
-          label: "Company Management",
-          icon: "🏢",
-          path: "/company-management",
-        },
-        {
-          id: "maintenance",
-          label: "System Health",
-          icon: "🔧",
-          path: "/maintenance",
-        },
-        { id: "security", label: "Security", icon: "🔒", path: "/security" },
-        { id: "support", label: "Support", icon: "🎧", path: "/support" },
-        {
-          id: "settings",
-          label: "System Settings",
-          icon: "⚙️",
-          path: "/settings",
-        },
-      ];
-    } else if (userRole === "support_hr") {
+    if (userRole === "support_hr") {
       return [
         {
           id: "support-hr",
           label: "Support & HR",
           icon: "🤝",
           path: "/support-hr",
+        },
+      ];
+    } else if (userRole === "software_engineer") {
+      return [
+        {
+          id: "dashboard",
+          label: "Developer Dashboard",
+          icon: "💻",
+          path: "/dashboard",
+        },
+      ];
+    } else if (userRole === "sales_marketing") {
+      return [
+        {
+          id: "dashboard",
+          label: "Marketing Dashboard",
+          icon: "📢",
+          path: "/dashboard",
+        },
+      ];
+    } else if (userRole === "finance") {
+      return [
+        {
+          id: "dashboard",
+          label: "Finance Dashboard",
+          icon: "💰",
+          path: "/dashboard",
         },
       ];
     }
@@ -98,8 +77,12 @@ const Sidebar: React.FC<SidebarProps> = ({
         return "Super Admin";
       case "support_hr":
         return "Support & HR";
-      case "edufam_admin":
-        return "EduFam Admin";
+      case "software_engineer":
+        return "Software Engineer";
+      case "sales_marketing":
+        return "Sales & Marketing";
+      case "finance":
+        return "Finance Officer";
       default:
         return "Unauthorized User";
     }

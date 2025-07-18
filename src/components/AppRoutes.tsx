@@ -46,7 +46,6 @@ const AppRoutes = () => {
   // All authenticated routes should use AppContent for consistent layout
   switch (adminUser.role) {
     case "super_admin":
-    case "edufam_admin":
       return (
         <Routes>
           <Route
@@ -73,7 +72,6 @@ const AppRoutes = () => {
               </AppContent>
             }
           />
-          {/* Add other edufam_admin specific routes here */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       );

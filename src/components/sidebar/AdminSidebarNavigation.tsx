@@ -106,7 +106,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Users,
     path: "/admin-users",
     permission: "manage_admin_users",
-    roles: ["edufam_admin"],
+    roles: ["super_admin"],
     description: "Manage admin user accounts and roles",
   },
   {
@@ -131,7 +131,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Headphones,
     path: "/support",
     permission: "view_support_tickets",
-    roles: ["edufam_admin", "support_hr"],
+    roles: ["super_admin", "support_hr"],
     description: "Customer support tickets",
   },
   {
@@ -140,7 +140,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Users,
     path: "/hr",
     permission: "view_hr_records",
-    roles: ["edufam_admin", "support_hr"],
+    roles: ["super_admin", "support_hr"],
     description: "Internal HR management",
   },
   {
@@ -149,7 +149,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Megaphone,
     path: "/marketing",
     permission: "manage_marketing_campaigns",
-    roles: ["edufam_admin", "sales_marketing"],
+    roles: ["super_admin", "sales_marketing"],
     description: "Marketing campaigns and events",
   },
   {
@@ -158,7 +158,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: DollarSign,
     path: "/billing",
     permission: "view_billing",
-    roles: ["edufam_admin", "finance"],
+    roles: ["super_admin", "finance"],
     description: "Billing and financial management",
   },
   {
@@ -167,7 +167,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: FileText,
     path: "/logs",
     permission: "view_logs",
-    roles: ["edufam_admin", "software_engineer"],
+    roles: ["super_admin", "software_engineer"],
     description: "Application and system logs",
   },
   {
@@ -176,7 +176,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Database,
     path: "/database",
     permission: "manage_database",
-    roles: ["edufam_admin", "software_engineer"],
+    roles: ["super_admin", "software_engineer"],
     description: "Database management tools",
   },
   {
@@ -185,7 +185,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Code,
     path: "/api-usage",
     permission: "view_api_usage",
-    roles: ["edufam_admin", "software_engineer"],
+    roles: ["super_admin", "software_engineer"],
     description: "API usage and performance metrics",
   },
   {
@@ -194,7 +194,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Shield,
     path: "/audit-logs",
     permission: "view_audit_logs",
-    roles: ["edufam_admin"],
+    roles: ["super_admin"],
     description: "Security and audit logs",
   },
   {
@@ -203,7 +203,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Settings,
     path: "/settings",
     permission: "manage_global_settings",
-    roles: ["edufam_admin"],
+    roles: ["super_admin"],
     description: "Global system settings",
   },
 ];

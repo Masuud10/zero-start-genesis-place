@@ -1,137 +1,100 @@
 import React from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 import { Badge } from "@/components/ui/badge";
-import {
-  Code,
-  Database,
-  Settings,
-  Activity,
-  Terminal,
-  GitBranch,
-} from "lucide-react";
+import { Code, Database, Activity, Server, Bug, GitBranch } from "lucide-react";
 
 const SoftwareEngineerDashboard: React.FC = () => {
+  const { adminUser } = useAdminAuthContext();
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
-            Software Engineer Dashboard
-          </h2>
+          <h1 className="text-3xl font-bold tracking-tight">Developer Dashboard</h1>
           <p className="text-muted-foreground">
-            Technical modules and development tools
+            Welcome back, {adminUser?.name}. Here's your technical overview.
           </p>
         </div>
+        <Badge variant="outline" className="flex items-center gap-2">
+          <Code className="h-4 w-4" />
+          Software Engineer
+        </Badge>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Logs</CardTitle>
-            <Terminal className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Active</div>
-            <p className="text-xs text-muted-foreground">
-              View system logs and debugging information
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Database</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Connected</div>
-            <p className="text-xs text-muted-foreground">
-              Database management and monitoring
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Deployments</CardTitle>
-            <GitBranch className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Stable</div>
-            <p className="text-xs text-muted-foreground">
-              Manage application deployments
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">API Usage</CardTitle>
+            <CardTitle className="text-sm font-medium">System Health</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1.2K</div>
-            <p className="text-xs text-muted-foreground">
-              API calls this month
-            </p>
+            <div className="text-2xl font-bold text-green-600">98.5%</div>
+            <p className="text-xs text-muted-foreground">Uptime this month</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              System Analytics
-            </CardTitle>
-            <Settings className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Database Status</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Available</div>
-            <p className="text-xs text-muted-foreground">
-              System performance metrics
-            </p>
+            <div className="text-2xl font-bold text-green-600">Online</div>
+            <p className="text-xs text-muted-foreground">All connections healthy</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Reports</CardTitle>
-            <Code className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">API Calls</CardTitle>
+            <Server className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Export</div>
-            <p className="text-xs text-muted-foreground">
-              Generate technical reports
-            </p>
+            <div className="text-2xl font-bold">12.4K</div>
+            <p className="text-xs text-muted-foreground">Today</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
+            <Bug className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">0.02%</div>
+            <p className="text-xs text-muted-foreground">Last 24 hours</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Main Content */}
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent System Events</CardTitle>
-            <CardDescription>Latest system logs and events</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <GitBranch className="h-5 w-5" />
+              Development Tools
+            </CardTitle>
+            <CardDescription>
+              Access to development and deployment tools
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Database backup completed</span>
-                <Badge variant="secondary">2 hours ago</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">API rate limit warning</span>
-                <Badge variant="destructive">5 hours ago</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">New deployment successful</span>
-                <Badge variant="default">1 day ago</Badge>
+          <CardContent className="space-y-4">
+            <div className="text-center p-8">
+              <p className="text-muted-foreground mb-4">
+                Development tools and deployment management coming soon.
+              </p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Available Tools:</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Database Management</li>
+                  <li>• API Usage Analytics</li>
+                  <li>• System Logs</li>
+                  <li>• Performance Monitoring</li>
+                </ul>
               </div>
             </div>
           </CardContent>
@@ -139,27 +102,28 @@ const SoftwareEngineerDashboard: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common development tasks</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              System Monitoring
+            </CardTitle>
+            <CardDescription>
+              Real-time system performance and health
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
-                <Terminal className="mr-2 h-4 w-4" />
-                View System Logs
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Database className="mr-2 h-4 w-4" />
-                Database Console
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Activity className="mr-2 h-4 w-4" />
-                API Analytics
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Settings className="mr-2 h-4 w-4" />
-                System Settings
-              </Button>
+            <div className="text-center p-8">
+              <p className="text-muted-foreground mb-4">
+                Advanced monitoring dashboard coming soon.
+              </p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Monitoring Features:</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Real-time Metrics</li>
+                  <li>• Error Tracking</li>
+                  <li>• Performance Analysis</li>
+                  <li>• Alert Management</li>
+                </ul>
+              </div>
             </div>
           </CardContent>
         </Card>

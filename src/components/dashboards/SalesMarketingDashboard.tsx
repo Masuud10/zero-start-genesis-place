@@ -1,90 +1,60 @@
 import React from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 import { Badge } from "@/components/ui/badge";
-import {
-  TrendingUp,
-  Users,
-  Calendar,
-  MessageSquare,
-  Target,
-  BarChart3,
-} from "lucide-react";
+import { TrendingUp, Users, Mail, Calendar, Target, Megaphone } from "lucide-react";
 
 const SalesMarketingDashboard: React.FC = () => {
+  const { adminUser } = useAdminAuthContext();
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
-            Sales & Marketing Dashboard
-          </h2>
+          <h1 className="text-3xl font-bold tracking-tight">Marketing Dashboard</h1>
           <p className="text-muted-foreground">
-            Sales analytics and marketing campaigns
+            Welcome back, {adminUser?.name}. Here's your marketing overview.
           </p>
         </div>
+        <Badge variant="outline" className="flex items-center gap-2">
+          <Megaphone className="h-4 w-4" />
+          Sales & Marketing
+        </Badge>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground">
-              +12% from last month
-            </p>
+            <div className="text-2xl font-bold">--</div>
+            <p className="text-xs text-muted-foreground">Active prospects</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Conversion Rate
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">23.4%</div>
-            <p className="text-xs text-muted-foreground">
-              +2.1% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$45,231</div>
-            <p className="text-xs text-muted-foreground">
-              +8.2% from last month
-            </p>
+            <div className="text-2xl font-bold">--%</div>
+            <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Campaigns
-            </CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Campaigns</CardTitle>
+            <Mail className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">
-              Marketing campaigns running
-            </p>
+            <div className="text-2xl font-bold">--</div>
+            <p className="text-xs text-muted-foreground">Active campaigns</p>
           </CardContent>
         </Card>
 
@@ -94,44 +64,37 @@ const SalesMarketingDashboard: React.FC = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">
-              Upcoming events this month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Notifications</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">156</div>
-            <p className="text-xs text-muted-foreground">Sent this week</p>
+            <div className="text-2xl font-bold">--</div>
+            <p className="text-xs text-muted-foreground">Upcoming events</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Main Content */}
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Leads</CardTitle>
-            <CardDescription>Latest lead generation activity</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Marketing Analytics
+            </CardTitle>
+            <CardDescription>
+              Track marketing performance and ROI
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">St. Mary's School</span>
-                <Badge variant="secondary">New</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Bright Future Academy</span>
-                <Badge variant="default">Qualified</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Excellence Prep</span>
-                <Badge variant="destructive">Hot Lead</Badge>
+          <CardContent className="space-y-4">
+            <div className="text-center p-8">
+              <p className="text-muted-foreground mb-4">
+                Marketing analytics dashboard coming soon.
+              </p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Available Features:</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Campaign Management</li>
+                  <li>• Lead Tracking</li>
+                  <li>• Event Planning</li>
+                  <li>• Performance Analytics</li>
+                </ul>
               </div>
             </div>
           </CardContent>
@@ -139,27 +102,28 @@ const SalesMarketingDashboard: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common sales and marketing tasks</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Lead Management
+            </CardTitle>
+            <CardDescription>
+              Manage prospects and conversions
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
-                <Users className="mr-2 h-4 w-4" />
-                Manage Leads
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Marketing Analytics
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Calendar className="mr-2 h-4 w-4" />
-                Manage Events
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Send Notifications
-              </Button>
+            <div className="text-center p-8">
+              <p className="text-muted-foreground mb-4">
+                Lead management system coming soon.
+              </p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Lead Features:</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Prospect Tracking</li>
+                  <li>• Follow-up Management</li>
+                  <li>• Conversion Analytics</li>
+                  <li>• Sales Pipeline</li>
+                </ul>
+              </div>
             </div>
           </CardContent>
         </Card>
