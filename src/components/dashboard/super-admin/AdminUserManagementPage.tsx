@@ -36,11 +36,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 const ADMIN_ROLES = [
   { value: "super_admin", label: "Super Admin" },
-  { value: "finance_officer", label: "Finance Officer" },
-  { value: "sales_marketing", label: "Sales & Marketing" },
-  { value: "software_engineer", label: "Software Engineer" },
+  { value: "finance", label: "Finance Officer" },
+  { value: "marketing_sales", label: "Sales & Marketing" },
+  { value: "engineer", label: "Software Engineer" },
   { value: "support_hr", label: "Support HR" },
-];
+] as const;
+
+type AdminRole = typeof ADMIN_ROLES[number]['value'];
 
 const AdminUserManagementPage: React.FC = () => {
   const { adminUser } = useAdminAuthContext();
@@ -51,7 +53,12 @@ const AdminUserManagementPage: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
   const [editUser, setEditUser] = useState<any>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string;
+    email: string;
+    role: AdminRole;
+    is_active: boolean;
+  }>({
     name: "",
     email: "",
     role: "support_hr",
@@ -105,7 +112,7 @@ const AdminUserManagementPage: React.FC = () => {
         .update({
           name: form.name,
           email: form.email,
-          role: form.role,
+          role: form.role as any,
           is_active: form.is_active,
         })
         .eq("id", editUser.id);
@@ -121,7 +128,7 @@ const AdminUserManagementPage: React.FC = () => {
       const { error } = await supabase.from("admin_users").insert({
         name: form.name,
         email: form.email,
-        role: form.role,
+        role: form.role as any,
         is_active: form.is_active,
         app_type: "admin",
         permissions: {},
@@ -319,7 +326,7 @@ const AdminUserManagementPage: React.FC = () => {
             />
             <Select
               value={form.role}
-              onValueChange={(role) => setForm((f) => ({ ...f, role }))}
+              onValueChange={(role: AdminRole) => setForm((f) => ({ ...f, role }))}
             >
               <SelectTrigger>
                 <SelectValue />

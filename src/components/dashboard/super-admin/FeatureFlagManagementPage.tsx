@@ -28,7 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FeatureFlagsService } from "@/services/advancedFeaturesService";
+import { FeatureFlagsService } from "@/services/mockAdvancedFeaturesService";
 import { FeatureFlag, CreateFeatureFlagForm } from "@/types/advanced-features";
 import {
   Plus,

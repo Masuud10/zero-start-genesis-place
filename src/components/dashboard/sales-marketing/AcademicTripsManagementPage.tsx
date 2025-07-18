@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { AcademicTripsService } from "@/services/advancedFeaturesService";
+import { AcademicTripsService } from "@/services/mockAdvancedFeaturesService";
 import {
   AcademicTrip,
   TripRegistrationWithDetails,

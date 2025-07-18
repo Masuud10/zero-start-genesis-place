@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { SchoolHealthService } from "@/services/advancedFeaturesService";
+import { SchoolHealthService } from "@/services/mockAdvancedFeaturesService";
 import { SchoolHealthMetrics } from "@/types/advanced-features";
 import {
   TrendingUp,

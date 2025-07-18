@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { DatabaseQueryPerformanceService } from "@/services/advancedFeaturesService";
+import { DatabaseQueryPerformanceService } from "@/services/mockAdvancedFeaturesService";
 import { DatabaseQueryPerformance } from "@/types/advanced-features";
 import {
   Database,

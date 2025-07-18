@@ -35,7 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { OnboardingChecklistsService } from "@/services/advancedFeaturesService";
+import { OnboardingChecklistsService } from "@/services/mockAdvancedFeaturesService";
 import { OnboardingChecklistWithSchool } from "@/types/advanced-features";
 import {
   Plus,
@@ -159,7 +159,7 @@ const ClientOnboardingChecklistsPage: React.FC = () => {
     try {
       const response =
         await OnboardingChecklistsService.completeOnboardingChecklist(
-          selectedChecklist.id,
+          selectedChecklist.id.toString(),
           completionNotes
         );
 

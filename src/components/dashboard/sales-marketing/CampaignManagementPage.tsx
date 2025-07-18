@@ -58,7 +58,7 @@ import {
   XCircle,
   Play,
   Pause,
-  Stop,
+  Square,
   Copy,
   Share2,
   Filter,
@@ -268,6 +268,7 @@ const CampaignManagementPage: React.FC = () => {
       id: Date.now().toString(),
       ...newCampaign,
       status: "draft",
+      spent: 0,
       created_at: new Date().toISOString(),
       metrics: {
         impressions: 0,

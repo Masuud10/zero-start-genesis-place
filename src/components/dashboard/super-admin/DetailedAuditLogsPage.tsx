@@ -33,7 +33,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
-import { AuditLogsService } from "@/services/advancedFeaturesService";
+import { AuditLogsService } from "@/services/mockAdvancedFeaturesService";
 import { DetailedAuditLog, AuditLogFilter } from "@/types/advanced-features";
 import {
   Search,

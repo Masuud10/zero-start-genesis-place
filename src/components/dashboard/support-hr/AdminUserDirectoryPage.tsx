@@ -76,6 +76,7 @@ import {
   GraduationCap,
   CreditCard,
   Globe,
+  Code2,
 } from "lucide-react";
 
 interface AdminUser {
@@ -166,7 +167,7 @@ const AdminUserDirectoryPage: React.FC = () => {
     {
       value: "software_engineer",
       label: "Software Engineer",
-      icon: Code,
+      icon: Code2,
       color: "text-purple-600",
     },
     {

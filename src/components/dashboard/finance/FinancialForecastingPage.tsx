@@ -28,7 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FinancialForecastingService } from "@/services/advancedFeaturesService";
+import { FinancialForecastingService } from "@/services/mockAdvancedFeaturesService";
 import { FinancialForecast, FinancialMetrics } from "@/types/advanced-features";
 import {
   Plus,
@@ -116,7 +116,7 @@ const FinancialForecastingPage: React.FC = () => {
       }
 
       if (metricsResponse.success) {
-        setMetrics(metricsResponse.data);
+        setMetrics(metricsResponse.data as FinancialMetrics);
       } else {
         toast({
           title: "Error",
