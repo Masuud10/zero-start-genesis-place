@@ -1,6 +1,6 @@
 import React from "react";
 import { AuthUser } from "@/types/auth";
-import CreateSchoolDialog from "@/components/school/CreateSchoolDialog";
+
 import DatabaseSettingsModal from "./modals/DatabaseSettingsModal";
 import MaintenanceModeModal from "./modals/MaintenanceModeModal";
 import UserManagementModal from "./modals/UserManagementModal";
@@ -38,9 +38,18 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
   switch (activeModal) {
     case "create-school":
       return (
-        <CreateSchoolDialog onSchoolCreated={handleSuccess}>
-          <div></div>
-        </CreateSchoolDialog>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Create School</h3>
+            <p className="mb-4">School creation feature coming soon.</p>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       );
 
     case "database-settings":

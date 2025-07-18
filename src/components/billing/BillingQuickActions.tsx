@@ -50,7 +50,7 @@ const BillingQuickActions: React.FC<BillingQuickActionsProps> = ({
       const result = await createSetupFees.mutateAsync(amount);
       toast({
         title: "Setup Fees Created",
-        description: `Successfully created setup fees for ${result.length} schools.`,
+        description: `Successfully created setup fees for schools.`,
       });
       onRefresh?.();
     } catch (error) {
@@ -69,7 +69,7 @@ const BillingQuickActions: React.FC<BillingQuickActionsProps> = ({
       const result = await createMonthlySubscriptions.mutateAsync(rate);
       toast({
         title: "Monthly Subscriptions Created",
-        description: `Successfully created monthly subscriptions for ${result.length} schools.`,
+        description: `Successfully created monthly subscriptions for schools.`,
       });
       onRefresh?.();
     } catch (error) {

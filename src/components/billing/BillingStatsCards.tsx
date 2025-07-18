@@ -45,35 +45,35 @@ const BillingStatsCards: React.FC = () => {
           <FileText className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats?.pendingInvoices || 0}</div>
+          <div className="text-2xl font-bold">{stats?.totalRecords || 0}</div>
           <p className="text-xs text-muted-foreground">
-            Awaiting payment
+            Total records
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Paid Invoices</CardTitle>
+          <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
           <CheckCircle className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats?.paidInvoices || 0}</div>
+          <div className="text-2xl font-bold">{stats?.monthlyRevenue || 0}</div>
           <p className="text-xs text-muted-foreground">
-            Successfully paid
+            Current month
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Setup Fees</CardTitle>
+          <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
           <CreditCard className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats?.setupFees || 0}</div>
+          <div className="text-2xl font-bold">{stats?.outstandingAmount || 0}</div>
           <p className="text-xs text-muted-foreground">
-            One-time fees
+            Outstanding balances
           </p>
         </CardContent>
       </Card>

@@ -154,6 +154,69 @@ export const useBillingActions = () => {
     },
   });
 
+  const createSetupFees = useMutation({
+    mutationFn: async (data: any) => {
+      // Simulate API call for creating setup fees
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Setup fees created successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create setup fees',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const createMonthlySubscriptions = useMutation({
+    mutationFn: async (data: any) => {
+      // Simulate API call for creating monthly subscriptions
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Monthly subscriptions created successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create monthly subscriptions',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteBillingRecord = useMutation({
+    mutationFn: async (recordId: string) => {
+      // Simulate API call for deleting billing record
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Billing record deleted successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete billing record',
+        variant: 'destructive',
+      });
+    },
+  });
+
   return {
     createBillingRecord,
     updateBillingRecord,
@@ -162,5 +225,8 @@ export const useBillingActions = () => {
     createSetupFee,
     createManualFee,
     exportBillingData,
+    createSetupFees,
+    createMonthlySubscriptions,
+    deleteBillingRecord,
   };
-}; 
+};

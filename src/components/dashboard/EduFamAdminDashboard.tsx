@@ -44,10 +44,8 @@ import {
 } from "lucide-react";
 
 // Import dashboard components
-import EduFamDashboardOverview from "./EduFamDashboardOverview";
-import SchoolsModule from "@/components/modules/SchoolsModule";
-import UsersModule from "@/components/modules/UsersModule";
-import EduFamAnalyticsOverview from "@/components/analytics/EduFamAnalyticsOverview";
+
+
 import BillingModule from "@/components/modules/BillingModule";
 import SystemHealthModule from "@/components/modules/SystemHealthModule";
 import SecurityModule from "@/components/modules/SecurityModule";
@@ -405,22 +403,34 @@ const EduFamAdminDashboard = () => {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <EduFamDashboardOverview />
+          <div className="text-center p-8">
+            <h3 className="text-lg font-semibold mb-2">System Overview</h3>
+            <p className="text-muted-foreground">System overview dashboard coming soon.</p>
+          </div>
         </TabsContent>
 
         {/* Schools Tab */}
         <TabsContent value="schools" className="space-y-6">
-          <SchoolsModule />
+          <div className="text-center p-8">
+            <h3 className="text-lg font-semibold mb-2">Schools Management</h3>
+            <p className="text-muted-foreground">Schools module coming soon.</p>
+          </div>
         </TabsContent>
 
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
-          <UsersModule />
+          <div className="text-center p-8">
+            <h3 className="text-lg font-semibold mb-2">Users Management</h3>
+            <p className="text-muted-foreground">User management module coming soon.</p>
+          </div>
         </TabsContent>
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
-          <EduFamAnalyticsOverview />
+          <div className="text-center p-8">
+            <h3 className="text-lg font-semibold mb-2">Analytics Overview</h3>
+            <p className="text-muted-foreground">Analytics module coming soon.</p>
+          </div>
         </TabsContent>
 
         {/* Billing Tab */}
@@ -450,7 +460,7 @@ const EduFamAdminDashboard = () => {
           isOpen={showUserManagement}
           onClose={() => setShowUserManagement(false)}
           onSuccess={handleModalSuccess}
-          user={authUser}
+          currentUser={adminUser}
         />
       )}
 
@@ -459,7 +469,7 @@ const EduFamAdminDashboard = () => {
           isOpen={showMaintenanceMode}
           onClose={() => setShowMaintenanceMode(false)}
           onSuccess={handleModalSuccess}
-          user={authUser}
+          currentUser={adminUser}
         />
       )}
 
@@ -468,7 +478,7 @@ const EduFamAdminDashboard = () => {
           isOpen={showDatabaseSettings}
           onClose={() => setShowDatabaseSettings(false)}
           onSuccess={handleModalSuccess}
-          user={authUser}
+          currentUser={adminUser}
         />
       )}
 
@@ -477,7 +487,7 @@ const EduFamAdminDashboard = () => {
           isOpen={showSecuritySettings}
           onClose={() => setShowSecuritySettings(false)}
           onSuccess={handleModalSuccess}
-          user={authUser}
+          currentUser={adminUser}
         />
       )}
 
@@ -486,7 +496,7 @@ const EduFamAdminDashboard = () => {
           isOpen={showNotificationSettings}
           onClose={() => setShowNotificationSettings(false)}
           onSuccess={handleModalSuccess}
-          user={authUser}
+          currentUser={adminUser}
         />
       )}
 
@@ -495,7 +505,7 @@ const EduFamAdminDashboard = () => {
           isOpen={showCompanyDetails}
           onClose={() => setShowCompanyDetails(false)}
           onSuccess={handleModalSuccess}
-          user={authUser}
+          currentUser={adminUser}
         />
       )}
 
@@ -504,7 +514,7 @@ const EduFamAdminDashboard = () => {
           isOpen={showSchoolRegistration}
           onClose={() => setShowSchoolRegistration(false)}
           onSuccess={handleModalSuccess}
-          user={authUser}
+          currentUser={adminUser}
         />
       )}
 
@@ -513,8 +523,6 @@ const EduFamAdminDashboard = () => {
           isOpen={showSchoolDetails}
           onClose={() => setShowSchoolDetails(false)}
           school={selectedSchool}
-          onSuccess={handleModalSuccess}
-          user={authUser}
         />
       )}
     </div>

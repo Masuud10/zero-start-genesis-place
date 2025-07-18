@@ -39,10 +39,10 @@ const SchoolBillingList: React.FC<SchoolBillingListProps> = ({
 
   // Group records by school
   const recordsBySchool = billingRecords?.reduce((acc, record) => {
-    const schoolId = record.school_id;
+    const schoolId = record.id; // Using record ID as fallback
     if (!acc[schoolId]) {
       acc[schoolId] = {
-        school: record.schools,
+        school: { name: 'Unknown School', id: schoolId },
         records: []
       };
     }

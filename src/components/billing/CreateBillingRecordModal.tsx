@@ -402,7 +402,7 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
               <AlertDescription>
                 <strong>{getSelectedSchool()?.name}</strong>
                 <br />
-                Email: {getSelectedSchool()?.email}
+                Email: {(getSelectedSchool() as any)?.email || 'No email'}
                 <br />
                 Status: {getSelectedSchool()?.status || "Active"}
               </AlertDescription>
