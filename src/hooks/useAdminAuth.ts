@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminUser, AdminRole } from '@/types/admin';
@@ -21,9 +21,12 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const fetchAdminUser = async (userId: string) => {
+  const fetchAdminUser = useCallback(async (userId: string) => {
     try {
+      console.log('🔐 useAdminAuth: Fetching admin user for:', userId);
+      
       const { data, error } = await supabase
         .from('admin_users')
         .select('*')
@@ -32,18 +35,19 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         .single();
 
       if (error) {
-        console.error('Error fetching admin user:', error);
+        console.error('🔐 useAdminAuth: Error fetching admin user:', error);
         return null;
       }
 
+      console.log('🔐 useAdminAuth: Admin user found:', data);
       return data as AdminUser;
     } catch (err) {
-      console.error('Error in fetchAdminUser:', err);
+      console.error('🔐 useAdminAuth: Error in fetchAdminUser:', err);
       return null;
     }
-  };
+  }, []);
 
-  const logAuditEvent = async (action: string, resource?: string, resourceId?: string) => {
+  const logAuditEvent = useCallback(async (action: string, resource?: string, resourceId?: string) => {
     if (!adminUser) return;
 
     try {
@@ -52,73 +56,100 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         action,
         resource,
         resource_id: resourceId,
-        ip_address: null, // Could be enhanced to get real IP
+        ip_address: null,
         user_agent: navigator.userAgent,
         success: true,
       });
     } catch (err) {
-      console.error('Error logging audit event:', err);
+      console.error('🔐 useAdminAuth: Error logging audit event:', err);
     }
-  };
+  }, [adminUser]);
+
+  const processAuthState = useCallback(async (session: Session | null) => {
+    console.log('🔐 useAdminAuth: Processing auth state:', session?.user?.email);
+    
+    setSession(session);
+    setUser(session?.user ?? null);
+
+    if (session?.user) {
+      // Fetch admin user data
+      const adminUserData = await fetchAdminUser(session.user.id);
+      if (adminUserData) {
+        setAdminUser(adminUserData);
+        setError(null);
+      } else {
+        setAdminUser(null);
+        setError('Access denied. You are not authorized to access the admin application.');
+        // Sign out unauthorized users
+        await supabase.auth.signOut();
+      }
+    } else {
+      setAdminUser(null);
+      setError(null);
+    }
+    
+    setIsLoading(false);
+    setIsInitialized(true);
+  }, [fetchAdminUser]);
 
   useEffect(() => {
+    let isMounted = true;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Admin auth state change:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          // Fetch admin user data
+        if (!isMounted) return;
+        
+        console.log('🔐 useAdminAuth: Auth state change:', event, session?.user?.email);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          await processAuthState(session);
+          
+          // Log login event
           const adminUserData = await fetchAdminUser(session.user.id);
           if (adminUserData) {
-            setAdminUser(adminUserData);
-            setError(null);
-            
-            // Log login event
-            if (event === 'SIGNED_IN') {
-              setTimeout(() => {
-                logAuditEvent('admin_login');
-              }, 0);
-            }
-          } else {
+            setTimeout(() => {
+              logAuditEvent('admin_login');
+            }, 0);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          if (isMounted) {
+            setSession(null);
+            setUser(null);
             setAdminUser(null);
-            setError('Access denied. You are not authorized to access the admin application.');
-            // Sign out unauthorized users
-            await supabase.auth.signOut();
+            setError(null);
+            setIsLoading(false);
+            setIsInitialized(true);
           }
         } else {
-          setAdminUser(null);
-          setError(null);
+          await processAuthState(session);
         }
-        
-        setIsLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const adminUserData = await fetchAdminUser(session.user.id);
-        if (adminUserData) {
-          setAdminUser(adminUserData);
-          setError(null);
-        } else {
-          setAdminUser(null);
-          setError('Access denied. You are not authorized to access the admin application.');
-          await supabase.auth.signOut();
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (isMounted) {
+          await processAuthState(session);
+        }
+      } catch (err) {
+        console.error('🔐 useAdminAuth: Error getting session:', err);
+        if (isMounted) {
+          setIsLoading(false);
+          setIsInitialized(true);
         }
       }
-      
-      setIsLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
-  }, []);
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [processAuthState, fetchAdminUser, logAuditEvent]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -140,8 +171,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
 
       if (data.user) {
         console.log('🔐 useAdminAuth: User authenticated, checking admin status');
-        // Check if user is an admin - this will be handled by the auth state change listener
-        // The listener will fetch admin user data and set adminUser state
+        // The auth state change listener will handle the rest
         return { error: null };
       }
 
@@ -167,7 +197,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       setAdminUser(null);
       setError(null);
     } catch (err) {
-      console.error('Error signing out:', err);
+      console.error('🔐 useAdminAuth: Error signing out:', err);
     }
   };
 

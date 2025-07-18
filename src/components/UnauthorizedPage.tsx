@@ -4,11 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Shield, Lock, ArrowLeft, Home } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { RouteGuard } from "@/utils/routeGuard";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 
 const UnauthorizedPage: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, adminUser, signOut } = useAdminAuthContext();
   const navigate = useNavigate();
 
   const handleGoBack = () => {
@@ -16,15 +15,8 @@ const UnauthorizedPage: React.FC = () => {
   };
 
   const handleGoHome = () => {
-    if (user) {
-      const sections = RouteGuard.getUserAccessibleSections(user);
-      if (sections.primarySection === "admin") {
-        navigate("/admin/dashboard");
-      } else if (sections.primarySection === "school") {
-        navigate("/dashboard");
-      } else {
-        navigate("/");
-      }
+    if (user && adminUser) {
+      navigate("/dashboard");
     } else {
       navigate("/");
     }
@@ -57,9 +49,10 @@ const UnauthorizedPage: React.FC = () => {
 
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
-              {user ? (
+              {user && adminUser ? (
                 <>
-                  You are logged in as <strong>{user.name}</strong> ({user.role}
+                  You are logged in as <strong>{adminUser.name}</strong> (
+                  {adminUser.role}
                   ).
                   <br />
                   Please contact your administrator if you believe this is an
