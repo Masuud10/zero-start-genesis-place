@@ -1,4 +1,4 @@
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 // Test script to verify super_admin access and enum fix
 async function testSuperAdmin() {
