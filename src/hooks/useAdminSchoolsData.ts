@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 import { QueryOptimizer, ApiCallWrapper } from '@/utils/apiOptimization';
 
 /**
  * Fetches all schools with their basic information for admin dashboard
  */
 export function useAdminSchoolsData(refreshKey = 0) {
-  const { user } = useAuth();
+  const { user, adminUser } = useAdminAuthContext();
   
   return useQuery({
     queryKey: ['admin-schools', refreshKey],
@@ -16,22 +16,22 @@ export function useAdminSchoolsData(refreshKey = 0) {
       const startTime = Date.now();
       
       // Guard: Check if user is authenticated and has admin role
-      if (!user) {
+      if (!user || !adminUser) {
         throw new Error('User authentication required');
       }
       
-      if (!user.role) {
-        throw new Error('User role not loaded yet');
+      if (!adminUser.role) {
+        throw new Error('Admin role not loaded yet');
       }
       
-      if (user.role !== 'edufam_admin') {
+      if (!['edufam_admin', 'super_admin'].includes(adminUser.role)) {
         throw new Error('Access denied. Only EduFam/Elimisha administrators can access school data.');
       }
       
       try {
         const result = await ApiCallWrapper.execute(async () => {
           // Validate query parameters
-          QueryOptimizer.validateQueryParams({ user_id: user.id, role: user.role });
+          QueryOptimizer.validateQueryParams({ user_id: user.id, role: adminUser.role });
           
           // Use the secure database function for EduFam admins
           const { data, error } = await supabase.rpc('get_admin_schools_data');
@@ -75,7 +75,7 @@ export function useAdminSchoolsData(refreshKey = 0) {
         throw error;
       }
     },
-    enabled: !!user && !!user.role && (user.role === 'edufam_admin'),
+    enabled: !!user && !!adminUser && !!adminUser.role && ['edufam_admin', 'super_admin'].includes(adminUser.role),
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
