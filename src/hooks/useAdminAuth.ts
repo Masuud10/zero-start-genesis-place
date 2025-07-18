@@ -32,10 +32,15 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         .select('*')
         .eq('user_id', userId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('🔐 useAdminAuth: Error fetching admin user:', error);
+        return null;
+      }
+
+      if (!data) {
+        console.warn('🔐 useAdminAuth: No admin user found for user_id:', userId);
         return null;
       }
 
@@ -72,16 +77,26 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     setUser(session?.user ?? null);
 
     if (session?.user) {
-      // Fetch admin user data
-      const adminUserData = await fetchAdminUser(session.user.id);
-      if (adminUserData) {
-        setAdminUser(adminUserData);
-        setError(null);
-      } else {
+      try {
+        // Fetch admin user data
+        const adminUserData = await fetchAdminUser(session.user.id);
+        console.log('🔐 useAdminAuth: Admin user data received:', adminUserData);
+        
+        if (adminUserData) {
+          setAdminUser(adminUserData);
+          setError(null);
+          console.log('🔐 useAdminAuth: Admin user set successfully');
+        } else {
+          console.warn('🔐 useAdminAuth: No admin user found, signing out');
+          setAdminUser(null);
+          setError('Access denied. You are not authorized to access the admin application.');
+          // Sign out unauthorized users
+          await supabase.auth.signOut();
+        }
+      } catch (err) {
+        console.error('🔐 useAdminAuth: Error processing auth state:', err);
         setAdminUser(null);
-        setError('Access denied. You are not authorized to access the admin application.');
-        // Sign out unauthorized users
-        await supabase.auth.signOut();
+        setError('Error loading admin user data');
       }
     } else {
       setAdminUser(null);
@@ -103,16 +118,10 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         console.log('🔐 useAdminAuth: Auth state change:', event, session?.user?.email);
         
         if (event === 'SIGNED_IN' && session?.user) {
+          console.log('🔐 useAdminAuth: Processing SIGNED_IN event');
           await processAuthState(session);
-          
-          // Log login event
-          const adminUserData = await fetchAdminUser(session.user.id);
-          if (adminUserData) {
-            setTimeout(() => {
-              logAuditEvent('admin_login');
-            }, 0);
-          }
         } else if (event === 'SIGNED_OUT') {
+          console.log('🔐 useAdminAuth: Processing SIGNED_OUT event');
           if (isMounted) {
             setSession(null);
             setUser(null);
@@ -122,6 +131,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
             setIsInitialized(true);
           }
         } else {
+          console.log('🔐 useAdminAuth: Processing other auth event:', event);
           await processAuthState(session);
         }
       }
@@ -149,7 +159,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [processAuthState, fetchAdminUser, logAuditEvent]);
+  }, [processAuthState]);
 
   const signIn = async (email: string, password: string) => {
     try {
