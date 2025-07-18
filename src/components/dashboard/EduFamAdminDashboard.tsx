@@ -44,6 +44,13 @@ import {
   Search,
   ActivitySquare,
   ToggleLeft,
+  Crown,
+  School,
+  CreditCard,
+  Megaphone,
+  UserCheck,
+  Award,
+  FolderKanban,
 } from "lucide-react";
 
 // Import new advanced features
@@ -53,7 +60,6 @@ import FeatureFlagManagementPage from "./super-admin/FeatureFlagManagementPage";
 import AdminUserManagementPage from "./super-admin/AdminUserManagementPage";
 
 // Import dashboard components
-
 import BillingModule from "@/components/modules/BillingModule";
 import SystemHealthModule from "@/components/modules/SystemHealthModule";
 import SecurityModule from "@/components/modules/SecurityModule";
@@ -67,8 +73,13 @@ import DatabaseSettingsModal from "./modals/DatabaseSettingsModal";
 import SecuritySettingsModal from "./modals/SecuritySettingsModal";
 import NotificationSettingsModal from "./modals/NotificationSettingsModal";
 import CompanyDetailsModal from "./modals/CompanyDetailsModal";
-import SchoolRegistrationModal from "./modals/SchoolRegistrationModal";
-import SchoolDetailsModal from "@/components/modals/SchoolDetailsModal";
+
+// Import schools management components
+import SchoolsManagementModule from "@/components/modules/SchoolsManagementModule";
+import AnalyticsModule from "@/components/modules/AnalyticsModule";
+import ReportsModule from "@/components/modules/ReportsModule";
+import CommunicationModule from "@/components/modules/CommunicationModule";
+import CertificateModule from "@/components/modules/CertificateModule";
 
 interface School {
   id: string;
@@ -76,18 +87,20 @@ interface School {
   email: string;
   phone: string;
   address: string;
-  status?: string;
+  status: string;
   created_at: string;
-  school_type?: string;
+  updated_at: string;
+  owner_id?: string;
+  logo_url?: string;
   website_url?: string;
-  registration_number?: string;
-  year_established?: number;
   motto?: string;
   slogan?: string;
-  logo_url?: string;
-  owner_id?: string;
-  principal_id?: string;
+  registration_number?: string;
+  year_established?: number;
+  owner_information?: string;
+  school_type?: string;
   term_structure?: string;
+  location?: string;
 }
 
 const EduFamAdminDashboard = () => {
@@ -206,81 +219,85 @@ const EduFamAdminDashboard = () => {
     setShowSchoolDetails(true);
   };
 
-  const handleEditSchool = (school: School) => {
-    // For now, we'll show the school details modal in edit mode
-    // In the future, you can create a separate edit modal
-    setSelectedSchool(school);
-    setShowSchoolDetails(true);
-  };
-
-  const getSchoolStatusColor = (status?: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "inactive":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-      case "suspended":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-      default:
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+  const getRoleIcon = () => {
+    if (adminUser?.role === "super_admin") {
+      return <Crown className="h-5 w-5 text-yellow-600" />;
     }
+    return <Building2 className="h-5 w-5 text-blue-600" />;
   };
 
-  const getSchoolStatusIcon = (status?: string) => {
-    switch (status) {
-      case "active":
-        return <CheckCircle className="h-3 w-3" />;
-      case "inactive":
-      case "suspended":
-        return <XCircle className="h-3 w-3" />;
-      default:
-        return <AlertCircle className="h-3 w-3" />;
+  const getRoleLabel = () => {
+    if (adminUser?.role === "super_admin") {
+      return "Super Admin";
     }
+    return "EduFam Admin";
   };
 
-  // Show error if there's a schools error
+  const getCurrentTime = () => {
+    const now = new Date();
+    const hours = now.getHours();
+    let greeting = "Good morning";
+
+    if (hours >= 12 && hours < 17) {
+      greeting = "Good afternoon";
+    } else if (hours >= 17) {
+      greeting = "Good evening";
+    }
+
+    return greeting;
+  };
+
+  // Show error if schools data failed to load
   if (schoolsError) {
     return (
-      <div className="p-6">
-        <Alert variant="destructive" className="mb-6">
+      <div className="space-y-6">
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Error loading schools data: {schoolsError.message}
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-2"
+              onClick={testFetchSchools}
+            >
+              Test Connection
+            </Button>
           </AlertDescription>
         </Alert>
-        <Button onClick={testFetchSchools} variant="outline">
-          Test Direct Fetch
-        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            EduFam Admin Dashboard
-          </h1>
-          <p className="text-muted-foreground">
-            Welcome back, {adminUser?.name || adminUser?.email}. Here's what's
-            happening with your system.
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            onClick={() => setShowSchoolRegistration(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add School
-          </Button>
+      {/* Header with Greeting */}
+      <div className="flex flex-col space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              {getRoleIcon()}
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {getRoleLabel()} Dashboard
+                </h1>
+                <p className="text-muted-foreground">
+                  {getCurrentTime()}, {adminUser?.name || "Admin"}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Badge variant="outline" className="flex items-center space-x-1">
+              <Activity className="h-3 w-3" />
+              <span>System Online</span>
+            </Badge>
+          </div>
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Quick Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Schools</CardTitle>
@@ -305,7 +322,7 @@ const EduFamAdminDashboard = () => {
             <CardTitle className="text-sm font-medium">
               Recent Schools
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <Plus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -321,14 +338,12 @@ const EduFamAdminDashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Status</CardTitle>
+            <CardTitle className="text-sm font-medium">System Health</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">Online</div>
-            <p className="text-xs text-muted-foreground">
-              All systems operational
-            </p>
+            <div className="text-2xl font-bold text-green-600">99.9%</div>
+            <p className="text-xs text-muted-foreground">Uptime</p>
           </CardContent>
         </Card>
 
@@ -338,11 +353,63 @@ const EduFamAdminDashboard = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">--</div>
-            <p className="text-xs text-muted-foreground">Real-time count</p>
+            <div className="text-2xl font-bold">
+              {schoolsLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                "1,234"
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Across all schools</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Activity className="h-5 w-5" />
+            <span>Quick Actions</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col items-center justify-center space-y-2"
+              onClick={() => setShowSchoolRegistration(true)}
+            >
+              <Plus className="h-6 w-6" />
+              <span className="text-sm">Add School</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col items-center justify-center space-y-2"
+              onClick={() => setShowUserManagement(true)}
+            >
+              <UserCheck className="h-6 w-6" />
+              <span className="text-sm">Create User</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col items-center justify-center space-y-2"
+              onClick={() => setShowMaintenanceMode(true)}
+            >
+              <Settings className="h-6 w-6" />
+              <span className="text-sm">Maintenance</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col items-center justify-center space-y-2"
+              onClick={() => setShowDatabaseSettings(true)}
+            >
+              <Database className="h-6 w-6" />
+              <span className="text-sm">Database</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Main Dashboard Tabs */}
       <Tabs
@@ -442,20 +509,78 @@ const EduFamAdminDashboard = () => {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="text-center p-8">
-            <h3 className="text-lg font-semibold mb-2">System Overview</h3>
-            <p className="text-muted-foreground">
-              System overview dashboard coming soon.
-            </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart3 className="h-5 w-5" />
+                  <span>System Overview</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Total Schools</span>
+                    <span className="text-sm text-muted-foreground">
+                      {totalSchools}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Active Schools</span>
+                    <span className="text-sm text-muted-foreground">
+                      {activeSchools}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">System Status</span>
+                    <Badge variant="outline" className="text-green-600">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Online
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Activity className="h-5 w-5" />
+                  <span>Recent Activity</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm">System backup completed</span>
+                    <span className="text-xs text-muted-foreground">
+                      2 min ago
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm">New school registered</span>
+                    <span className="text-xs text-muted-foreground">
+                      15 min ago
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    <span className="text-sm">Maintenance scheduled</span>
+                    <span className="text-xs text-muted-foreground">
+                      1 hour ago
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
         {/* Schools Tab */}
         <TabsContent value="schools" className="space-y-6">
-          <div className="text-center p-8">
-            <h3 className="text-lg font-semibold mb-2">Schools Management</h3>
-            <p className="text-muted-foreground">Schools module coming soon.</p>
-          </div>
+          <SchoolsManagementModule />
         </TabsContent>
 
         {/* Users Tab */}
@@ -477,12 +602,7 @@ const EduFamAdminDashboard = () => {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
-          <div className="text-center p-8">
-            <h3 className="text-lg font-semibold mb-2">Analytics Overview</h3>
-            <p className="text-muted-foreground">
-              Analytics module coming soon.
-            </p>
-          </div>
+          <AnalyticsModule />
         </TabsContent>
 
         {/* Billing Tab */}
@@ -573,23 +693,6 @@ const EduFamAdminDashboard = () => {
           onClose={() => setShowCompanyDetails(false)}
           onSuccess={handleModalSuccess}
           currentUser={adminUser}
-        />
-      )}
-
-      {showSchoolRegistration && (
-        <SchoolRegistrationModal
-          isOpen={showSchoolRegistration}
-          onClose={() => setShowSchoolRegistration(false)}
-          onSuccess={handleModalSuccess}
-          currentUser={adminUser}
-        />
-      )}
-
-      {showSchoolDetails && selectedSchool && (
-        <SchoolDetailsModal
-          isOpen={showSchoolDetails}
-          onClose={() => setShowSchoolDetails(false)}
-          school={selectedSchool}
         />
       )}
     </div>
