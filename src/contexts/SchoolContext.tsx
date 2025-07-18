@@ -64,9 +64,7 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const getCacheKey = (userRole: string, schoolId?: string) => {
-    return userRole === "elimisha_admin" || userRole === "edufam_admin"
-      ? "all_schools"
-      : `school_${schoolId}`;
+    return userRole === "edufam_admin" ? "all_schools" : `school_${schoolId}`;
   };
 
   const fetchSchools = useCallback(async () => {
@@ -117,7 +115,7 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       let schoolsData: School[] = [];
 
       // For system admins, fetch all schools
-      if (user.role === "elimisha_admin" || user.role === "edufam_admin") {
+      if (user.role === "edufam_admin") {
         try {
           const result = await Promise.race([
             supabase.from("schools").select("*").order("name"),

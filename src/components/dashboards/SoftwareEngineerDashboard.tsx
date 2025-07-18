@@ -1,189 +1,169 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  Code, 
-  GitBranch, 
-  Server, 
-  Bug, 
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Code,
+  Database,
+  Settings,
   Activity,
-  Zap,
-  AlertTriangle,
-  CheckCircle,
-  Clock
-} from 'lucide-react';
+  Terminal,
+  GitBranch,
+} from "lucide-react";
 
-const SoftwareEngineerDashboard = () => {
-  // Mock data for demonstration
-  const systemMetrics = {
-    uptime: '99.9%',
-    responseTime: '127ms',
-    activeUsers: '2,847',
-    deployments: 23
-  };
-
-  const recentDeployments = [
-    { id: 1, service: 'API Gateway', status: 'success', time: '2 hours ago' },
-    { id: 2, service: 'User Service', status: 'success', time: '5 hours ago' },
-    { id: 3, service: 'Payment Service', status: 'pending', time: '1 day ago' },
-  ];
-
-  const criticalIssues = [
-    { id: 1, title: 'Memory leak in user service', severity: 'high', time: '30 min ago' },
-    { id: 2, title: 'Database connection timeout', severity: 'medium', time: '2 hours ago' },
-  ];
-
+const SoftwareEngineerDashboard: React.FC = () => {
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Engineering Dashboard</h1>
-          <p className="text-muted-foreground">Monitor system health and development progress</p>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Software Engineer Dashboard
+          </h2>
+          <p className="text-muted-foreground">
+            Technical modules and development tools
+          </p>
         </div>
-        <Button className="gap-2">
-          <Code className="h-4 w-4" />
-          Deploy Latest
-        </Button>
       </div>
 
-      {/* System Health Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
-            <Activity className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium">System Logs</CardTitle>
+            <Terminal className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{systemMetrics.uptime}</div>
-            <p className="text-xs text-muted-foreground">Last 30 days</p>
+            <div className="text-2xl font-bold">Active</div>
+            <p className="text-xs text-muted-foreground">
+              View system logs and debugging information
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
-            <Zap className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium">Database</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{systemMetrics.responseTime}</div>
-            <p className="text-xs text-muted-foreground">Last 24 hours</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <Server className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{systemMetrics.activeUsers}</div>
-            <p className="text-xs text-muted-foreground">Currently online</p>
+            <div className="text-2xl font-bold">Connected</div>
+            <p className="text-xs text-muted-foreground">
+              Database management and monitoring
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Deployments</CardTitle>
-            <GitBranch className="h-4 w-4 text-orange-600" />
+            <GitBranch className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{systemMetrics.deployments}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <div className="text-2xl font-bold">Stable</div>
+            <p className="text-xs text-muted-foreground">
+              Manage application deployments
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">API Usage</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">1.2K</div>
+            <p className="text-xs text-muted-foreground">
+              API calls this month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              System Analytics
+            </CardTitle>
+            <Settings className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Available</div>
+            <p className="text-xs text-muted-foreground">
+              System performance metrics
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Reports</CardTitle>
+            <Code className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Export</div>
+            <p className="text-xs text-muted-foreground">
+              Generate technical reports
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Deployments */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GitBranch className="h-5 w-5" />
-              Recent Deployments
-            </CardTitle>
+            <CardTitle>Recent System Events</CardTitle>
+            <CardDescription>Latest system logs and events</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {recentDeployments.map((deployment) => (
-              <div key={deployment.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  {deployment.status === 'success' ? (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <Clock className="h-4 w-4 text-yellow-600" />
-                  )}
-                  <div>
-                    <p className="font-medium">{deployment.service}</p>
-                    <p className="text-sm text-muted-foreground">{deployment.time}</p>
-                  </div>
-                </div>
-                <Badge variant={deployment.status === 'success' ? 'default' : 'secondary'}>
-                  {deployment.status}
-                </Badge>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Database backup completed</span>
+                <Badge variant="secondary">2 hours ago</Badge>
               </div>
-            ))}
+              <div className="flex items-center justify-between">
+                <span className="text-sm">API rate limit warning</span>
+                <Badge variant="destructive">5 hours ago</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">New deployment successful</span>
+                <Badge variant="default">1 day ago</Badge>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Critical Issues */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bug className="h-5 w-5" />
-              Critical Issues
-            </CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common development tasks</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {criticalIssues.map((issue) => (
-              <div key={issue.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className={`h-4 w-4 ${issue.severity === 'high' ? 'text-red-600' : 'text-yellow-600'}`} />
-                  <div>
-                    <p className="font-medium">{issue.title}</p>
-                    <p className="text-sm text-muted-foreground">{issue.time}</p>
-                  </div>
-                </div>
-                <Badge variant={issue.severity === 'high' ? 'destructive' : 'secondary'}>
-                  {issue.severity}
-                </Badge>
-              </div>
-            ))}
-            {criticalIssues.length === 0 && (
-              <div className="text-center py-6 text-muted-foreground">
-                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                No critical issues found
-              </div>
-            )}
+          <CardContent>
+            <div className="space-y-2">
+              <Button variant="outline" className="w-full justify-start">
+                <Terminal className="mr-2 h-4 w-4" />
+                View System Logs
+              </Button>
+              <Button variant="outline" className="w-full justify-start">
+                <Database className="mr-2 h-4 w-4" />
+                Database Console
+              </Button>
+              <Button variant="outline" className="w-full justify-start">
+                <Activity className="mr-2 h-4 w-4" />
+                API Analytics
+              </Button>
+              <Button variant="outline" className="w-full justify-start">
+                <Settings className="mr-2 h-4 w-4" />
+                System Settings
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Code className="h-6 w-6" />
-              <span>Code Review</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <GitBranch className="h-6 w-6" />
-              <span>Deploy Staging</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Server className="h-6 w-6" />
-              <span>System Logs</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Bug className="h-6 w-6" />
-              <span>Bug Reports</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

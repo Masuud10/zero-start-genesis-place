@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 import LandingPage from "@/components/LandingPage";
 import ElimshaLayout from "@/components/ElimshaLayout";
 import LoadingScreen from "@/components/common/LoadingScreen";
@@ -13,6 +13,8 @@ import MaintenancePage from "@/components/maintenance/MaintenancePage";
 import { checkDatabaseConnection } from "@/integrations/supabase/client";
 import { RouteGuard } from "@/utils/routeGuard";
 import { AuthService } from "@/services/authService";
+import { AuthUser } from "@/types/auth";
+import { User } from "@supabase/supabase-js";
 
 interface AppContentProps {
   children?: React.ReactNode;
@@ -31,8 +33,47 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
     error?: string;
   } | null>(null);
 
-  // Always call useAuth at the top level
-  const authState = useAuth();
+  // Always call useAdminAuthContext at the top level
+  const authState = useAdminAuthContext();
+
+  // Convert Supabase User to AuthUser
+  const convertToAuthUser = (user: User | null): AuthUser | null => {
+    if (!user) return null;
+    const user_metadata =
+      typeof user.user_metadata === "object" && user.user_metadata !== null
+        ? (user.user_metadata as Record<string, unknown>)
+        : {};
+    const app_metadata =
+      typeof user.app_metadata === "object" && user.app_metadata !== null
+        ? (user.app_metadata as Record<string, unknown>)
+        : {};
+    return {
+      id: String(user.id),
+      email: String(user.email || ""),
+      name:
+        typeof user_metadata.name === "string"
+          ? user_metadata.name
+          : String(user.email),
+      role:
+        typeof user_metadata.role === "string"
+          ? user_metadata.role
+          : "edufam_admin",
+      school_id:
+        typeof user_metadata.school_id === "string"
+          ? user_metadata.school_id
+          : undefined,
+      avatar_url:
+        typeof user_metadata.avatar_url === "string"
+          ? user_metadata.avatar_url
+          : undefined,
+      created_at:
+        typeof user.created_at === "string" ? user.created_at : undefined,
+      updated_at:
+        typeof user.updated_at === "string" ? user.updated_at : undefined,
+      user_metadata,
+      app_metadata,
+    };
+  };
 
   // Removed database connection check for performance optimization
   // The authentication flow will naturally fail if database is unreachable
@@ -48,7 +89,10 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
       const currentPath = window.location.pathname;
       const routeConfig = RouteGuard.getRouteConfig(currentPath);
 
-      const access = await RouteGuard.checkAccess(authState.user, routeConfig);
+      const access = await RouteGuard.checkAccess(
+        convertToAuthUser(authState.user),
+        routeConfig
+      );
       setAccessCheck(access);
 
       // If access is denied and we have a redirect, navigate
@@ -79,12 +123,7 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
     );
   }
 
-  const {
-    user,
-    isLoading: authLoading,
-    error: authError,
-    isInitialized,
-  } = authState;
+  const { user, isLoading: authLoading, error: authError } = authState;
 
   console.log("🎯 AppContent: State:", {
     authLoading,
@@ -92,14 +131,13 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
     hasUser: !!user,
     role: user?.role,
     email: user?.email,
-    isInitialized,
     dbStatus,
     isCheckingDb,
     accessCheck,
   });
 
   // Show loading while checking database or auth
-  if (!isInitialized || authLoading || isCheckingDb) {
+  if (authLoading || isCheckingDb) {
     console.log("🎯 AppContent: Loading...");
     return <LoadingScreen />;
   }
@@ -191,9 +229,7 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
     return (
       <NavigationProvider>
         <SchoolProvider>
-          <ElimshaLayout>
-            {children}
-          </ElimshaLayout>
+          <ElimshaLayout>{children}</ElimshaLayout>
         </SchoolProvider>
       </NavigationProvider>
     );

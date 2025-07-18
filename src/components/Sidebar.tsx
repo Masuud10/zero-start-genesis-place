@@ -1,44 +1,92 @@
-
-import React, { useState } from 'react';
-import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useNavigate } from "react-router-dom";
+import { AdminSidebarNavigation } from "./sidebar/AdminSidebarNavigation";
 
 interface SidebarProps {
   activeSection?: string;
   onSectionChange?: (section: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  activeSection,
+  onSectionChange,
+}) => {
   const { adminUser } = useAdminAuthContext();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Define different menu items for different roles
+  // For edufam_admin users, use the comprehensive AdminSidebarNavigation
+  if (adminUser?.role === "edufam_admin") {
+    return <AdminSidebarNavigation />;
+  }
+
+  // For other roles, use the simplified menu structure
   const getMenuItems = () => {
     const userRole = adminUser?.role;
-    
-    if (userRole === 'super_admin') {
+
+    if (userRole === "super_admin") {
       return [
-        { id: 'dashboard', label: 'Admin Dashboard', icon: '📊', path: '/dashboard' },
-        { id: 'analytics', label: 'System Analytics', icon: '📈', path: '/analytics' },
-        { id: 'schools', label: 'Schools Management', icon: '🏫', path: '/schools' },
-        { id: 'users', label: 'User Management', icon: '👥', path: '/users' },
-        { id: 'billing', label: 'Billing & Subscriptions', icon: '💰', path: '/billing' },
-        { id: 'company-management', label: 'Company Management', icon: '🏢', path: '/company-management' },
-        { id: 'maintenance', label: 'System Health', icon: '🔧', path: '/maintenance' },
-        { id: 'security', label: 'Security', icon: '🔒', path: '/security' },
-        { id: 'support', label: 'Support', icon: '🎧', path: '/support' },
-        { id: 'settings', label: 'System Settings', icon: '⚙️', path: '/settings' },
+        {
+          id: "dashboard",
+          label: "Admin Dashboard",
+          icon: "📊",
+          path: "/dashboard",
+        },
+        {
+          id: "analytics",
+          label: "System Analytics",
+          icon: "📈",
+          path: "/analytics",
+        },
+        {
+          id: "schools",
+          label: "Schools Management",
+          icon: "🏫",
+          path: "/schools",
+        },
+        { id: "users", label: "User Management", icon: "👥", path: "/users" },
+        {
+          id: "billing",
+          label: "Billing & Subscriptions",
+          icon: "💰",
+          path: "/billing",
+        },
+        {
+          id: "company-management",
+          label: "Company Management",
+          icon: "🏢",
+          path: "/company-management",
+        },
+        {
+          id: "maintenance",
+          label: "System Health",
+          icon: "🔧",
+          path: "/maintenance",
+        },
+        { id: "security", label: "Security", icon: "🔒", path: "/security" },
+        { id: "support", label: "Support", icon: "🎧", path: "/support" },
+        {
+          id: "settings",
+          label: "System Settings",
+          icon: "⚙️",
+          path: "/settings",
+        },
       ];
-    } else if (userRole === 'support_hr') {
+    } else if (userRole === "support_hr") {
       return [
-        { id: 'support-hr', label: 'Support & HR', icon: '🤝', path: '/support-hr' },
+        {
+          id: "support-hr",
+          label: "Support & HR",
+          icon: "🤝",
+          path: "/support-hr",
+        },
       ];
     }
-    
+
     return [];
   };
 
@@ -46,14 +94,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
 
   const getRoleDisplay = (role: string) => {
     switch (role) {
-      case 'super_admin':
-        return 'Super Admin';
-      case 'support_hr':
-        return 'Support & HR';
-      case 'elimisha_admin':
-        return 'Elimisha Admin';
+      case "super_admin":
+        return "Super Admin";
+      case "support_hr":
+        return "Support & HR";
+      case "edufam_admin":
+        return "EduFam Admin";
       default:
-        return 'Unauthorized User';
+        return "Unauthorized User";
     }
   };
 
@@ -73,11 +121,17 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
       <div className="p-4 md:p-6 border-b border-border">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 md:w-10 md:h-10 gradient-navy rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-sm md:text-base">🎓</span>
+            <span className="text-white font-bold text-sm md:text-base">
+              🎓
+            </span>
           </div>
           <div>
-            <h2 className="font-semibold text-foreground text-sm md:text-base">EduFam</h2>
-            <p className="text-xs md:text-sm text-muted-foreground">{getRoleDisplay(adminUser?.role || '')}</p>
+            <h2 className="font-semibold text-foreground text-sm md:text-base">
+              EduFam
+            </h2>
+            <p className="text-xs md:text-sm text-muted-foreground">
+              {getRoleDisplay(adminUser?.role || "")}
+            </p>
           </div>
         </div>
       </div>
@@ -89,13 +143,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
             variant={activeSection === item.id ? "default" : "ghost"}
             className={cn(
               "w-full justify-start text-left h-10 md:h-12 transition-all duration-200 text-sm md:text-base",
-              activeSection === item.id 
-                ? "gradient-navy text-white shadow-lg" 
+              activeSection === item.id
+                ? "gradient-navy text-white shadow-lg"
                 : "hover:bg-accent"
             )}
             onClick={() => handleSectionChange(item.id, item.path)}
           >
-            <span className="mr-2 md:mr-3 text-base md:text-lg">{item.icon}</span>
+            <span className="mr-2 md:mr-3 text-base md:text-lg">
+              {item.icon}
+            </span>
             {item.label}
           </Button>
         ))}
@@ -106,7 +162,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
           <div className="flex items-center space-x-2 md:space-x-3">
             <div className="w-6 h-6 md:w-8 md:h-8 rounded-full gradient-navy flex items-center justify-center">
               <span className="text-white text-xs md:text-sm font-bold">
-                {adminUser?.name?.charAt(0).toUpperCase() || adminUser?.email?.charAt(0).toUpperCase()}
+                {adminUser?.name?.charAt(0).toUpperCase() ||
+                  adminUser?.email?.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
@@ -129,9 +186,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
       <div className="md:hidden">
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="fixed top-4 left-4 z-50 bg-white shadow-lg"
             >
               <span className="text-lg">☰</span>

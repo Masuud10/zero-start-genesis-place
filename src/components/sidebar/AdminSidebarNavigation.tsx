@@ -1,28 +1,28 @@
-import React from 'react';
-import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
-import { AdminRole } from '@/types/admin';
-import { 
-  Users, 
-  School, 
-  BarChart3, 
-  Headphones, 
-  Megaphone, 
-  DollarSign, 
-  Settings, 
-  Code, 
+import React from "react";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
+import { AdminRole } from "@/types/admin";
+import {
+  Users,
+  School,
+  BarChart3,
+  Headphones,
+  Megaphone,
+  DollarSign,
+  Settings,
+  Code,
   Database,
   FileText,
   Shield,
   Calendar,
-  Mail
-} from 'lucide-react';
-import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { useLocation, useNavigate } from 'react-router-dom';
+  Mail,
+} from "lucide-react";
+import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface AdminMenuItem {
   id: string;
   label: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   path: string;
   permission?: string;
   roles?: AdminRole[];
@@ -31,117 +31,180 @@ interface AdminMenuItem {
 
 const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
+    id: "dashboard",
+    label: "Dashboard",
     icon: BarChart3,
-    path: '/dashboard',
-    description: 'Overview and key metrics'
+    path: "/dashboard",
+    description: "Overview and key metrics",
   },
   {
-    id: 'user-management',
-    label: 'Admin Users',
-    icon: Users,
-    path: '/admin-users',
-    permission: 'manage_admin_users',
-    roles: ['super_admin'],
-    description: 'Manage admin user accounts and roles'
+    id: "overview",
+    label: "Overview",
+    icon: BarChart3,
+    path: "/dashboard?tab=overview",
+    description: "System overview and metrics",
   },
   {
-    id: 'school-management',
-    label: 'Schools',
+    id: "schools",
+    label: "Schools",
     icon: School,
-    path: '/schools',
-    permission: 'view_schools',
-    description: 'Manage customer schools'
+    path: "/dashboard?tab=schools",
+    description: "Manage customer schools",
   },
   {
-    id: 'analytics',
-    label: 'Analytics',
-    icon: BarChart3,
-    path: '/analytics',
-    permission: 'view_system_analytics',
-    description: 'System and business analytics'
-  },
-  {
-    id: 'support-tickets',
-    label: 'Support',
-    icon: Headphones,
-    path: '/support',
-    permission: 'view_support_tickets',
-    roles: ['super_admin', 'support_hr'],
-    description: 'Customer support tickets'
-  },
-  {
-    id: 'hr-management',
-    label: 'HR Records',
+    id: "users",
+    label: "Users",
     icon: Users,
-    path: '/hr',
-    permission: 'view_hr_records',
-    roles: ['super_admin', 'support_hr'],
-    description: 'Internal HR management'
+    path: "/dashboard?tab=users",
+    description: "Manage admin users and accounts",
   },
   {
-    id: 'marketing',
-    label: 'Marketing',
-    icon: Megaphone,
-    path: '/marketing',
-    permission: 'manage_marketing_campaigns',
-    roles: ['super_admin', 'sales_marketing'],
-    description: 'Marketing campaigns and events'
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    path: "/dashboard?tab=analytics",
+    description: "System and business analytics",
   },
   {
-    id: 'billing',
-    label: 'Billing',
+    id: "billing",
+    label: "Billing",
     icon: DollarSign,
-    path: '/billing',
-    permission: 'view_billing',
-    roles: ['super_admin', 'finance'],
-    description: 'Billing and financial management'
+    path: "/dashboard?tab=billing",
+    description: "Billing and financial management",
   },
   {
-    id: 'logs',
-    label: 'System Logs',
+    id: "reports",
+    label: "Reports",
     icon: FileText,
-    path: '/logs',
-    permission: 'view_logs',
-    roles: ['super_admin', 'software_engineer'],
-    description: 'Application and system logs'
+    path: "/dashboard?tab=reports",
+    description: "Generate and view reports",
   },
   {
-    id: 'database',
-    label: 'Database',
-    icon: Database,
-    path: '/database',
-    permission: 'manage_database',
-    roles: ['super_admin', 'software_engineer'],
-    description: 'Database management tools'
+    id: "support",
+    label: "Support",
+    icon: Headphones,
+    path: "/dashboard?tab=support",
+    description: "Customer support management",
   },
   {
-    id: 'api-usage',
-    label: 'API Usage',
-    icon: Code,
-    path: '/api-usage',
-    permission: 'view_api_usage',
-    roles: ['super_admin', 'software_engineer'],
-    description: 'API usage and performance metrics'
-  },
-  {
-    id: 'audit-logs',
-    label: 'Audit Logs',
-    icon: Shield,
-    path: '/audit-logs',
-    permission: 'view_audit_logs',
-    roles: ['super_admin'],
-    description: 'Security and audit logs'
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
+    id: "settings",
+    label: "Settings",
     icon: Settings,
-    path: '/settings',
-    permission: 'manage_global_settings',
-    roles: ['super_admin'],
-    description: 'Global system settings'
+    path: "/dashboard?tab=settings",
+    description: "System settings and configuration",
+  },
+  {
+    id: "system",
+    label: "System",
+    icon: Database,
+    path: "/dashboard?tab=system",
+    description: "System management and monitoring",
+  },
+  {
+    id: "user-management",
+    label: "Admin Users",
+    icon: Users,
+    path: "/admin-users",
+    permission: "manage_admin_users",
+    roles: ["edufam_admin"],
+    description: "Manage admin user accounts and roles",
+  },
+  {
+    id: "school-management",
+    label: "Schools",
+    icon: School,
+    path: "/schools",
+    permission: "view_schools",
+    description: "Manage customer schools",
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    path: "/analytics",
+    permission: "view_system_analytics",
+    description: "System and business analytics",
+  },
+  {
+    id: "support-tickets",
+    label: "Support",
+    icon: Headphones,
+    path: "/support",
+    permission: "view_support_tickets",
+    roles: ["edufam_admin", "support_hr"],
+    description: "Customer support tickets",
+  },
+  {
+    id: "hr-management",
+    label: "HR Records",
+    icon: Users,
+    path: "/hr",
+    permission: "view_hr_records",
+    roles: ["edufam_admin", "support_hr"],
+    description: "Internal HR management",
+  },
+  {
+    id: "marketing",
+    label: "Marketing",
+    icon: Megaphone,
+    path: "/marketing",
+    permission: "manage_marketing_campaigns",
+    roles: ["edufam_admin", "sales_marketing"],
+    description: "Marketing campaigns and events",
+  },
+  {
+    id: "billing",
+    label: "Billing",
+    icon: DollarSign,
+    path: "/billing",
+    permission: "view_billing",
+    roles: ["edufam_admin", "finance"],
+    description: "Billing and financial management",
+  },
+  {
+    id: "logs",
+    label: "System Logs",
+    icon: FileText,
+    path: "/logs",
+    permission: "view_logs",
+    roles: ["edufam_admin", "software_engineer"],
+    description: "Application and system logs",
+  },
+  {
+    id: "database",
+    label: "Database",
+    icon: Database,
+    path: "/database",
+    permission: "manage_database",
+    roles: ["edufam_admin", "software_engineer"],
+    description: "Database management tools",
+  },
+  {
+    id: "api-usage",
+    label: "API Usage",
+    icon: Code,
+    path: "/api-usage",
+    permission: "view_api_usage",
+    roles: ["edufam_admin", "software_engineer"],
+    description: "API usage and performance metrics",
+  },
+  {
+    id: "audit-logs",
+    label: "Audit Logs",
+    icon: Shield,
+    path: "/audit-logs",
+    permission: "view_audit_logs",
+    roles: ["edufam_admin"],
+    description: "Security and audit logs",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: Settings,
+    path: "/settings",
+    permission: "manage_global_settings",
+    roles: ["edufam_admin"],
+    description: "Global system settings",
   },
 ];
 
@@ -153,17 +216,24 @@ export const AdminSidebarNavigation: React.FC = () => {
   const isMenuItemVisible = (item: AdminMenuItem): boolean => {
     // If no permission or role specified, item is visible to all
     if (!item.permission && !item.roles) return true;
-    
+
     // Check role-based access
     if (item.roles && !isRole(item.roles)) return false;
-    
+
     // Check permission-based access
     if (item.permission && !hasPermission(item.permission)) return false;
-    
+
     return true;
   };
 
   const isActive = (path: string) => {
+    if (path.includes("?tab=")) {
+      const [basePath, tabParam] = path.split("?tab=");
+      return (
+        location.pathname === basePath &&
+        location.search.includes(`tab=${tabParam}`)
+      );
+    }
     return location.pathname === path;
   };
 
@@ -178,15 +248,13 @@ export const AdminSidebarNavigation: React.FC = () => {
       {visibleItems.map((item) => {
         const Icon = item.icon;
         const active = isActive(item.path);
-        
+
         return (
           <SidebarMenuItem key={item.id}>
             <SidebarMenuButton
               onClick={() => handleNavigation(item.path)}
               className={`w-full justify-start ${
-                active 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'hover:bg-muted'
+                active ? "bg-primary text-primary-foreground" : "hover:bg-muted"
               }`}
               title={item.description}
             >
@@ -196,14 +264,16 @@ export const AdminSidebarNavigation: React.FC = () => {
           </SidebarMenuItem>
         );
       })}
-      
+
       {/* Role indicator at bottom */}
       {adminUser && (
         <div className="mt-8 p-3 bg-muted/50 rounded-lg">
-          <div className="text-xs text-muted-foreground mb-1">Signed in as:</div>
+          <div className="text-xs text-muted-foreground mb-1">
+            Signed in as:
+          </div>
           <div className="text-sm font-medium">{adminUser.name}</div>
           <div className="text-xs text-muted-foreground capitalize">
-            {adminUser.role.replace('_', ' ')}
+            {adminUser.role.replace("_", " ")}
           </div>
         </div>
       )}

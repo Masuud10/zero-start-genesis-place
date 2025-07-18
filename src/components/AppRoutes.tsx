@@ -7,7 +7,7 @@ import SupportHrDashboard from "@/pages/SupportHrDashboard";
 import AppContent from "@/components/AppContent";
 
 // Import dashboard components for different roles
-import SuperAdminDashboard from "@/components/dashboard/SuperAdminDashboard";
+import EduFamAdminDashboard from "@/components/dashboard/EduFamAdminDashboard";
 import SoftwareEngineerDashboard from "@/components/dashboards/SoftwareEngineerDashboard";
 import SalesMarketingDashboard from "@/components/dashboards/SalesMarketingDashboard";
 import FinanceDashboard from "@/components/dashboards/FinanceDashboard";
@@ -31,12 +31,27 @@ const AppRoutes = () => {
   }
 
   // If a user IS logged in, route them based on their role.
+  // All authenticated routes should use AppContent for consistent layout
   switch (user.role) {
     case "edufam_admin":
       return (
         <Routes>
-          <Route path="/dashboard" element={<SuperAdminDashboard />} />
-          <Route path="/support-hr" element={<SupportHrDashboard />} />
+          <Route
+            path="/dashboard"
+            element={
+              <AppContent>
+                <EduFamAdminDashboard />
+              </AppContent>
+            }
+          />
+          <Route
+            path="/support-hr"
+            element={
+              <AppContent>
+                <SupportHrDashboard />
+              </AppContent>
+            }
+          />
           {/* Add other edufam_admin specific routes here */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -44,7 +59,14 @@ const AppRoutes = () => {
     case "support_hr":
       return (
         <Routes>
-          <Route path="/dashboard" element={<SupportHrDashboard />} />
+          <Route
+            path="/dashboard"
+            element={
+              <AppContent>
+                <SupportHrDashboard />
+              </AppContent>
+            }
+          />
           {/* Add other support_hr specific routes here */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -52,7 +74,14 @@ const AppRoutes = () => {
     case "software_engineer":
       return (
         <Routes>
-          <Route path="/dashboard" element={<SoftwareEngineerDashboard />} />
+          <Route
+            path="/dashboard"
+            element={
+              <AppContent>
+                <SoftwareEngineerDashboard />
+              </AppContent>
+            }
+          />
           {/* Add other software_engineer specific routes here */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -60,7 +89,14 @@ const AppRoutes = () => {
     case "sales_marketing":
       return (
         <Routes>
-          <Route path="/dashboard" element={<SalesMarketingDashboard />} />
+          <Route
+            path="/dashboard"
+            element={
+              <AppContent>
+                <SalesMarketingDashboard />
+              </AppContent>
+            }
+          />
           {/* Add other sales_marketing specific routes here */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -68,7 +104,14 @@ const AppRoutes = () => {
     case "finance":
       return (
         <Routes>
-          <Route path="/dashboard" element={<FinanceDashboard />} />
+          <Route
+            path="/dashboard"
+            element={
+              <AppContent>
+                <FinanceDashboard />
+              </AppContent>
+            }
+          />
           {/* Add other finance specific routes here */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

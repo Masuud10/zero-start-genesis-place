@@ -1,199 +1,177 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown, 
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DollarSign,
+  TrendingUp,
   CreditCard,
-  PieChart,
   FileText,
   Calculator,
-  AlertCircle,
-  CheckCircle,
-  Clock
-} from 'lucide-react';
+  BarChart3,
+} from "lucide-react";
 
-const FinanceDashboard = () => {
-  // Mock data for demonstration
-  const financialMetrics = {
-    totalRevenue: '$328,450',
-    totalExpenses: '$142,890',
-    netProfit: '$185,560',
-    cashFlow: '+$42,120'
-  };
-
-  const recentTransactions = [
-    { id: 1, description: 'Software Licenses', amount: '-$12,000', date: '2 hours ago', status: 'completed' },
-    { id: 2, description: 'Client Payment - Acme Corp', amount: '+$25,000', date: '5 hours ago', status: 'completed' },
-    { id: 3, description: 'Office Rent', amount: '-$8,500', date: '1 day ago', status: 'pending' },
-  ];
-
-  const upcomingPayments = [
-    { id: 1, vendor: 'Cloud Services', amount: '$3,200', dueDate: 'Tomorrow', priority: 'high' },
-    { id: 2, vendor: 'Marketing Agency', amount: '$7,500', dueDate: 'Dec 20', priority: 'medium' },
-    { id: 3, vendor: 'Legal Services', amount: '$2,100', dueDate: 'Dec 25', priority: 'low' },
-  ];
-
+const FinanceDashboard: React.FC = () => {
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Finance Dashboard</h1>
-          <p className="text-muted-foreground">Monitor financial performance and manage payments</p>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Finance Dashboard
+          </h2>
+          <p className="text-muted-foreground">
+            Financial management and billing tools
+          </p>
         </div>
-        <Button className="gap-2">
-          <FileText className="h-4 w-4" />
-          Generate Report
-        </Button>
       </div>
 
-      {/* Financial Metrics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{financialMetrics.totalRevenue}</div>
-            <p className="text-xs text-muted-foreground">+18.2% from last month</p>
+            <div className="text-2xl font-bold">$124,563</div>
+            <p className="text-xs text-muted-foreground">
+              +12.5% from last month
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-600" />
+            <CardTitle className="text-sm font-medium">
+              Pending Invoices
+            </CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{financialMetrics.totalExpenses}</div>
-            <p className="text-xs text-muted-foreground">-5.4% from last month</p>
+            <div className="text-2xl font-bold">23</div>
+            <p className="text-xs text-muted-foreground">
+              $15,432 total pending
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-            <DollarSign className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium">
+              Collection Rate
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{financialMetrics.netProfit}</div>
-            <p className="text-xs text-muted-foreground">+24.8% from last month</p>
+            <div className="text-2xl font-bold">94.2%</div>
+            <p className="text-xs text-muted-foreground">
+              +2.1% from last month
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cash Flow</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-sm font-medium">
+              Active Subscriptions
+            </CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{financialMetrics.cashFlow}</div>
-            <p className="text-xs text-muted-foreground">Positive this month</p>
+            <div className="text-2xl font-bold">156</div>
+            <p className="text-xs text-muted-foreground">
+              Monthly recurring revenue
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Financial Reports
+            </CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">12</div>
+            <p className="text-xs text-muted-foreground">
+              Reports generated this month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Billing Management
+            </CardTitle>
+            <Calculator className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Active</div>
+            <p className="text-xs text-muted-foreground">
+              Manage billing and payments
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Transactions */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Recent Transactions
-            </CardTitle>
+            <CardTitle>Recent Transactions</CardTitle>
+            <CardDescription>Latest financial transactions</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {recentTransactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  {transaction.status === 'completed' ? (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <Clock className="h-4 w-4 text-yellow-600" />
-                  )}
-                  <div>
-                    <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-muted-foreground">{transaction.date}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className={`font-bold ${transaction.amount.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.amount}
-                  </p>
-                  <Badge variant={transaction.status === 'completed' ? 'default' : 'secondary'}>
-                    {transaction.status}
-                  </Badge>
-                </div>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">St. Mary's School - Monthly</span>
+                <Badge variant="secondary">$2,500</Badge>
               </div>
-            ))}
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Bright Future Academy - Setup</span>
+                <Badge variant="default">$5,000</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Excellence Prep - Annual</span>
+                <Badge variant="destructive">$12,000</Badge>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Upcoming Payments */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Upcoming Payments
-            </CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common finance tasks</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {upcomingPayments.map((payment) => (
-              <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className={`h-4 w-4 ${
-                    payment.priority === 'high' ? 'text-red-600' :
-                    payment.priority === 'medium' ? 'text-yellow-600' : 'text-blue-600'
-                  }`} />
-                  <div>
-                    <p className="font-medium">{payment.vendor}</p>
-                    <p className="text-sm text-muted-foreground">Due: {payment.dueDate}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-red-600">{payment.amount}</p>
-                  <Badge variant={
-                    payment.priority === 'high' ? 'destructive' :
-                    payment.priority === 'medium' ? 'secondary' : 'outline'
-                  }>
-                    {payment.priority}
-                  </Badge>
-                </div>
-              </div>
-            ))}
+          <CardContent>
+            <div className="space-y-2">
+              <Button variant="outline" className="w-full justify-start">
+                <DollarSign className="mr-2 h-4 w-4" />
+                Manage Billing
+              </Button>
+              <Button variant="outline" className="w-full justify-start">
+                <FileText className="mr-2 h-4 w-4" />
+                View Invoices
+              </Button>
+              <Button variant="outline" className="w-full justify-start">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Financial Reports
+              </Button>
+              <Button variant="outline" className="w-full justify-start">
+                <Calculator className="mr-2 h-4 w-4" />
+                Payment Calculator
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <FileText className="h-6 w-6" />
-              <span>Invoices</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Calculator className="h-6 w-6" />
-              <span>Expenses</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <PieChart className="h-6 w-6" />
-              <span>Reports</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <CreditCard className="h-6 w-6" />
-              <span>Payments</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

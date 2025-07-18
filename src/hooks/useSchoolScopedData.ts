@@ -34,7 +34,7 @@ export const useSchoolScopedData = (): SchoolScopedDataResult => {
     }
     
     // System admins can access all schools
-    const isMultiTenantUser = user.role === 'edufam_admin' || user.role === 'elimisha_admin';
+    const isMultiTenantUser = user.role === 'edufam_admin';
     const isSystemAdmin = isMultiTenantUser; // Alias for backward compatibility
     
     // For multi-tenant users, use current selected school or null if none selected

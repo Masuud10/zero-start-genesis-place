@@ -127,7 +127,7 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
       }
 
       // Validate school assignment for non-admin roles
-      const requiresSchoolAssignment = !['edufam_admin', 'elimisha_admin'].includes(profile.role);
+      const requiresSchoolAssignment = !['edufam_admin'].includes(profile.role);
       const hasSchoolAssignment = !!profile?.school_id;
       
       if (requiresSchoolAssignment && !hasSchoolAssignment) {

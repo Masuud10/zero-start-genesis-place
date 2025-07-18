@@ -25,7 +25,7 @@ export function useAdminUsersData(refreshKey = 0) {
         throw new Error('User role not loaded yet');
       }
       
-      if (user.role !== 'edufam_admin' && user.role !== 'elimisha_admin') {
+      if (user.role !== 'edufam_admin') {
         throw new Error('Access denied. Only EduFam/Elimisha administrators can access user data.');
       }
       
@@ -62,7 +62,7 @@ export function useAdminUsersData(refreshKey = 0) {
             }
             
             // Role validation
-            const validRoles = ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin', 'elimisha_admin'];
+            const validRoles = ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin'];
             if (!validRoles.includes(userRecord.role)) {
               console.warn('👥 useAdminUsersData: Filtering out user with invalid role:', userRecord.role);
               return false;
@@ -90,7 +90,7 @@ export function useAdminUsersData(refreshKey = 0) {
         throw error;
       }
     },
-    enabled: !!user && !!user.role && (user.role === 'edufam_admin' || user.role === 'elimisha_admin'),
+    enabled: !!user && !!user.role && (user.role === 'edufam_admin'),
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {

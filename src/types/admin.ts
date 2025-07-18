@@ -1,4 +1,4 @@
-export type AdminRole = 'super_admin' | 'software_engineer' | 'support_hr' | 'sales_marketing' | 'finance';
+export type AdminRole = 'edufam_admin' | 'super_admin' | 'software_engineer' | 'support_hr' | 'sales_marketing' | 'finance';
 
 export interface AdminUser {
   id: string;
@@ -21,8 +21,8 @@ export interface AdminAuditLog {
   action: string;
   resource?: string;
   resource_id?: string;
-  old_values?: Record<string, any>;
-  new_values?: Record<string, any>;
+  old_values?: Record<string, unknown>;
+  new_values?: Record<string, unknown>;
   ip_address?: string;
   user_agent?: string;
   timestamp: string;
@@ -73,6 +73,33 @@ export interface AdminPermissions {
 }
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<AdminRole, Partial<AdminPermissions>> = {
+  edufam_admin: {
+    // Full access to everything
+    manage_admin_users: true,
+    view_admin_users: true,
+    manage_schools: true,
+    view_schools: true,
+    view_system_analytics: true,
+    view_school_analytics: true,
+    export_reports: true,
+    view_logs: true,
+    manage_database: true,
+    manage_deployments: true,
+    view_api_usage: true,
+    manage_support_tickets: true,
+    view_support_tickets: true,
+    manage_hr_records: true,
+    view_hr_records: true,
+    manage_marketing_campaigns: true,
+    view_marketing_analytics: true,
+    manage_events: true,
+    send_notifications: true,
+    manage_billing: true,
+    view_billing: true,
+    export_financial_reports: true,
+    manage_global_settings: true,
+    view_audit_logs: true,
+  },
   super_admin: {
     // Full access to everything
     manage_admin_users: true,
@@ -137,6 +164,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<AdminRole, Partial<AdminPermission
 };
 
 export const ROLE_LABELS: Record<AdminRole, string> = {
+  edufam_admin: 'EduFam Admin',
   super_admin: 'Super Admin',
   software_engineer: 'Software Engineer',
   support_hr: 'Support & HR Analyst',
@@ -145,6 +173,7 @@ export const ROLE_LABELS: Record<AdminRole, string> = {
 };
 
 export const ROLE_DESCRIPTIONS: Record<AdminRole, string> = {
+  edufam_admin: 'Full access to everything in the Admin Application. Can manage other admin users and override any role.',
   super_admin: 'Full access to everything in the Admin Application. Can manage other admin users and override any role.',
   software_engineer: 'Access to all technical modules including logs, database, deployments, and API usage analytics.',
   support_hr: 'Access to CRM, support tickets, school feedback, and internal HR modules.',

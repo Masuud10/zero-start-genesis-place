@@ -20,8 +20,7 @@ const SidebarHeader = () => {
         return "Finance Officer";
       case "edufam_admin":
         return "EduFam Admin";
-      case "elimisha_admin":
-        return "Elimisha Admin";
+
       default:
         return role;
     }

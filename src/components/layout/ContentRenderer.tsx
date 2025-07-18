@@ -35,9 +35,6 @@ const EduFamSystemSettings = React.lazy(
 const EduFamAnalyticsOverview = React.lazy(
   () => import("@/components/analytics/EduFamAnalyticsOverview")
 );
-const SchoolAnalyticsList = React.lazy(
-  () => import("@/components/analytics/SchoolAnalyticsList")
-);
 
 interface ContentRendererProps {
   activeSection: string;
@@ -56,7 +53,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
     );
 
     // Only allow EduFam Admin access to everything
-    const isEduFamAdmin = user?.role === "edufam_admin" || user?.role === "elimisha_admin";
+    const isEduFamAdmin = user?.role === "edufam_admin";
 
     // Memoize dashboard component to prevent unnecessary re-renders
     const dashboardComponent = useMemo(() => {
@@ -66,7 +63,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
       if (isEduFamAdmin) {
         return <EduFamAdminDashboard />;
       }
-      
+
       // All other roles are unauthorized
       return (
         <div className="p-8 text-center text-red-600">
@@ -90,9 +87,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
 
     // Render sections with lazy loading and error boundaries
     const renderLazyComponent = (
-      Component: React.LazyExoticComponent<React.ComponentType<any>>,
+      Component: React.LazyExoticComponent<
+        React.ComponentType<Record<string, unknown>>
+      >,
       componentName?: string,
-      props?: any
+      props?: Record<string, unknown>
     ) => {
       return (
         <div>
@@ -158,9 +157,14 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         );
 
       case "school-analytics":
-        return renderLazyComponent(
-          SchoolAnalyticsList,
-          "SchoolAnalyticsList"
+        return (
+          <div className="p-8 text-center text-gray-600">
+            <h2 className="text-2xl font-bold mb-4">School Analytics</h2>
+            <p>
+              School-specific analytics have been removed from this internal
+              admin application.
+            </p>
+          </div>
         );
 
       case "company-management":

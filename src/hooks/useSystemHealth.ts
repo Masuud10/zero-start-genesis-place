@@ -120,7 +120,7 @@ export const useSystemMetrics = () => {
       let totalTransactions = 0;
 
       try {
-        if (user?.role === 'edufam_admin' || user?.role === 'elimisha_admin') {
+        if (user?.role === 'edufam_admin') {
           const [schoolsRes, studentsRes, transactionsRes] = await Promise.allSettled([
             supabase.from('schools').select('id', { count: 'exact', head: true }),
             supabase.from('students').select('id', { count: 'exact', head: true }),
@@ -154,6 +154,6 @@ export const useSystemMetrics = () => {
     },
     refetchInterval: 5 * 60 * 1000, // 5 minutes
     retry: 1,
-    enabled: !!user && (user.role === 'edufam_admin' || user.role === 'elimisha_admin'),
+    enabled: !!user && (user.role === 'edufam_admin'),
   });
 };

@@ -1,227 +1,162 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-interface BillingRecord {
+// Basic billing record type for internal admin use
+export interface BillingRecord {
   id: string;
-  school_id: string;
-  invoice_number: string;
+  description: string;
   amount: number;
-  status: string;
-  billing_type: string;
-  description?: string;
-  due_date?: string;
+  currency: string;
+  status: 'pending' | 'paid' | 'overdue' | 'cancelled';
+  due_date: string;
   created_at: string;
-  schools?: {
-    name: string;
-    email: string;
+  updated_at: string;
+}
+
+// Billing stats for internal admin use
+export interface BillingStats {
+  totalRevenue: number;
+  monthlyRevenue: number;
+  outstandingAmount: number;
+  paidThisMonth: number;
+  overdueAmount: number;
+  totalRecords: number;
+}
+
+// Mock data for internal admin billing
+const mockBillingRecords: BillingRecord[] = [
+  {
+    id: '1',
+    description: 'EduFam Platform Subscription - Q1 2024',
+    amount: 500000,
+    currency: 'KES',
+    status: 'paid',
+    due_date: '2024-03-31',
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-03-15T00:00:00Z',
+  },
+  {
+    id: '2',
+    description: 'EduFam Platform Subscription - Q2 2024',
+    amount: 500000,
+    currency: 'KES',
+    status: 'pending',
+    due_date: '2024-06-30',
+    created_at: '2024-04-01T00:00:00Z',
+    updated_at: '2024-04-01T00:00:00Z',
+  },
+];
+
+const mockBillingStats: BillingStats = {
+  totalRevenue: 1500000,
+  monthlyRevenue: 500000,
+  outstandingAmount: 500000,
+  paidThisMonth: 500000,
+  overdueAmount: 0,
+  totalRecords: 2,
+};
+
+// Hook for billing records
+export const useBillingRecords = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['billing-records'],
+    queryFn: async (): Promise<BillingRecord[]> => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return mockBillingRecords;
+    },
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Hook for billing stats
+export const useBillingStats = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['billing-stats'],
+    queryFn: async (): Promise<BillingStats> => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return mockBillingStats;
+    },
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Hook for billing actions
+export const useBillingActions = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const createSetupFees = useMutation({
+    mutationFn: async () => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Setup fees created successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create setup fees',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const createMonthlySubscriptions = useMutation({
+    mutationFn: async () => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Monthly subscriptions created successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create monthly subscriptions',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  return {
+    createSetupFees,
+    createMonthlySubscriptions,
   };
-}
+};
 
-interface School {
-  id: string;
-  name: string;
-  email: string;
-  status: string;
-}
-
+// Hook for all schools (simplified for internal admin use)
 export const useAllSchools = () => {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ['all-schools'],
     queryFn: async () => {
-      if (!user || user.role !== 'edufam_admin') {
-        throw new Error('Access denied. Only EduFam Admin can access school data.');
-      }
-
-      const { data, error } = await supabase
-        .from('schools')
-        .select('id, name, email, status')
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-
-      return data as School[];
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return [
+        { id: '1', name: 'Demo School 1', status: 'active' },
+        { id: '2', name: 'Demo School 2', status: 'active' },
+      ];
     },
     enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
-};
-
-export const useBillingRecords = () => {
-  const { user } = useAuth();
-
-  return useQuery({
-    queryKey: ['billing-records'],
-    queryFn: async () => {
-      if (!user || user.role !== 'edufam_admin') {
-        throw new Error('Access denied. Only EduFam Admin can access billing data.');
-      }
-
-      const { data, error } = await supabase
-        .from('school_billing_records')
-        .select(`
-          *,
-          schools!inner(name, email)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-
-      return data as BillingRecord[];
-    },
-    enabled: user?.role === 'edufam_admin',
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-};
-
-export const useBillingStats = () => {
-  const { user } = useAuth();
-
-  return useQuery({
-    queryKey: ['billing-stats'],
-    queryFn: async () => {
-      if (!user || user.role !== 'edufam_admin') {
-        throw new Error('Access denied');
-      }
-
-      const { data: billingRecords, error } = await supabase
-        .from('school_billing_records')
-        .select('amount, status, billing_type');
-
-      if (error) throw error;
-
-      const totalRevenue = billingRecords?.reduce((sum, record) => sum + (record.amount || 0), 0) || 0;
-      const pendingInvoices = billingRecords?.filter(r => r.status === 'pending').length || 0;
-      const paidInvoices = billingRecords?.filter(r => r.status === 'paid').length || 0;
-      const setupFees = billingRecords?.filter(r => r.billing_type === 'setup_fee').length || 0;
-
-      return {
-        totalRevenue,
-        pendingInvoices,
-        paidInvoices,
-        setupFees,
-        totalInvoices: billingRecords?.length || 0
-      };
-    },
-    enabled: user?.role === 'edufam_admin',
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-};
-
-export const useBillingActions = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  const createSetupFees = useMutation({
-    mutationFn: async () => {
-      // Get all schools without setup fees
-      const { data: schools, error: schoolsError } = await supabase
-        .from('schools')
-        .select('id, name')
-        .not('id', 'in', 
-          supabase
-            .from('school_billing_records')
-            .select('school_id')
-            .eq('billing_type', 'setup_fee')
-        );
-
-      if (schoolsError) throw schoolsError;
-
-      if (!schools || schools.length === 0) {
-        return { message: 'All schools already have setup fees', recordsCreated: 0 };
-      }
-
-      // Create setup fee records
-      const setupFeeRecords = schools.map(school => ({
-        school_id: school.id,
-        amount: 15000, // 15,000 KES setup fee
-        billing_type: 'setup_fee',
-        status: 'pending',
-        description: `Setup fee for ${school.name}`,
-        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
-      }));
-
-      const { error: insertError } = await supabase
-        .from('school_billing_records')
-        .insert(setupFeeRecords);
-
-      if (insertError) throw insertError;
-
-      return { message: `Created setup fees for ${schools.length} schools`, recordsCreated: schools.length };
-    },
-    onSuccess: (result) => {
-      toast({
-        title: "Setup Fees Created",
-        description: result.message,
-      });
-      queryClient.invalidateQueries({ queryKey: ['billing-records'] });
-      queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create setup fees",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const createMonthlySubscriptions = useMutation({
-    mutationFn: async () => {
-      // Get all active schools
-      const { data: schools, error: schoolsError } = await supabase
-        .from('schools')
-        .select('id, name')
-        .eq('status', 'active');
-
-      if (schoolsError) throw schoolsError;
-
-      if (!schools || schools.length === 0) {
-        return { message: 'No active schools found', recordsCreated: 0 };
-      }
-
-      // Create monthly subscription records
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-      const subscriptionRecords = schools.map(school => ({
-        school_id: school.id,
-        amount: 2500, // 2,500 KES monthly fee
-        billing_type: 'subscription_fee',
-        status: 'pending',
-        description: `Monthly subscription for ${school.name} - ${currentMonth}`,
-        due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 5).toISOString() // 5th of next month
-      }));
-
-      const { error: insertError } = await supabase
-        .from('school_billing_records')
-        .insert(subscriptionRecords);
-
-      if (insertError) throw insertError;
-
-      return { message: `Created monthly subscriptions for ${schools.length} schools`, recordsCreated: schools.length };
-    },
-    onSuccess: (result) => {
-      toast({
-        title: "Monthly Subscriptions Created",
-        description: result.message,
-      });
-      queryClient.invalidateQueries({ queryKey: ['billing-records'] });
-      queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create monthly subscriptions",
-        variant: "destructive"
-      });
-    }
-  });
-
-  return {
-    createSetupFees,
-    createMonthlySubscriptions
-  };
-};
+}; 

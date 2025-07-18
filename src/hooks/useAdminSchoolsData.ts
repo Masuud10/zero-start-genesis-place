@@ -24,7 +24,7 @@ export function useAdminSchoolsData(refreshKey = 0) {
         throw new Error('User role not loaded yet');
       }
       
-      if (user.role !== 'edufam_admin' && user.role !== 'elimisha_admin') {
+      if (user.role !== 'edufam_admin') {
         throw new Error('Access denied. Only EduFam/Elimisha administrators can access school data.');
       }
       
@@ -75,7 +75,7 @@ export function useAdminSchoolsData(refreshKey = 0) {
         throw error;
       }
     },
-    enabled: !!user && !!user.role && (user.role === 'edufam_admin' || user.role === 'elimisha_admin'),
+    enabled: !!user && !!user.role && (user.role === 'edufam_admin'),
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {

@@ -156,7 +156,7 @@ export class AuthService {
     error?: string;
   } {
     // Define which roles can access which login types
-    const adminRoles = ['edufam_admin', 'elimisha_admin'];
+    const adminRoles = ['super_admin', 'edufam_admin'];
     const schoolRoles = ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'hr'];
 
     if (accessType === 'admin') {
@@ -339,7 +339,7 @@ export class AuthService {
    * Check if user is EduFam Admin
    */
   static isEduFamAdmin(role: string): boolean {
-    return role === 'edufam_admin' || role === 'elimisha_admin';
+    return role === 'super_admin' || role === 'edufam_admin';
   }
 
   /**
@@ -379,8 +379,8 @@ export class AuthService {
    */
   static getRoleDisplayName(role: string): string {
     const roleNames: Record<string, string> = {
+      'super_admin': 'Super Administrator',
       'edufam_admin': 'EduFam Admin Staff',
-      'elimisha_admin': 'Elimisha Admin Staff',
       'school_director': 'School Director',
       'principal': 'Principal',
       'teacher': 'Teacher',

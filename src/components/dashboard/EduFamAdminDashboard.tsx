@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -34,7 +36,23 @@ import {
   CheckCircle,
   XCircle,
   Globe,
+  BarChart3,
+  FileText,
+  Headphones,
+  DollarSign,
+  Activity,
 } from "lucide-react";
+
+// Import dashboard components
+import EduFamDashboardOverview from "./EduFamDashboardOverview";
+import SchoolsModule from "@/components/modules/SchoolsModule";
+import UsersModule from "@/components/modules/UsersModule";
+import EduFamAnalyticsOverview from "@/components/analytics/EduFamAnalyticsOverview";
+import BillingModule from "@/components/modules/BillingModule";
+import SystemHealthModule from "@/components/modules/SystemHealthModule";
+import SecurityModule from "@/components/modules/SecurityModule";
+import SupportModule from "@/components/modules/SupportModule";
+import EduFamSystemSettings from "@/components/modules/settings/EduFamSystemSettings";
 
 // Import modals
 import UserManagementModal from "./modals/UserManagementModal";
@@ -68,23 +86,27 @@ interface School {
 
 const EduFamAdminDashboard = () => {
   const { user, adminUser } = useAdminAuthContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Create AuthUser from admin data for compatibility with modals
-  const authUser: AuthUser | null = adminUser ? {
-    id: adminUser.user_id || adminUser.id,
-    email: adminUser.email,
-    name: adminUser.name,
-    role: adminUser.role,
-    school_id: null, // Admin users don't have school assignments
-    avatar_url: null,
-    created_at: adminUser.created_at,
-    updated_at: adminUser.updated_at,
-    user_metadata: {},
-    app_metadata: {},
-    mfa_enabled: false,
-    last_login_at: adminUser.last_login_at,
-    last_login_ip: undefined,
-  } : null;
+  const authUser: AuthUser | null = adminUser
+    ? {
+        id: adminUser.user_id || adminUser.id,
+        email: adminUser.email,
+        name: adminUser.name,
+        role: adminUser.role,
+        school_id: null, // Admin users don't have school assignments
+        avatar_url: null,
+        created_at: adminUser.created_at,
+        updated_at: adminUser.updated_at,
+        user_metadata: {},
+        app_metadata: {},
+        mfa_enabled: false,
+        last_login_at: adminUser.last_login_at,
+        last_login_ip: undefined,
+      }
+    : null;
 
   // Debug user info
   console.log("🏫 EduFamAdminDashboard: User info:", {
@@ -93,7 +115,7 @@ const EduFamAdminDashboard = () => {
     role: adminUser?.role,
     id: user?.id,
   });
-  
+
   // Use admin schools data
   const {
     data: schools = [],
@@ -138,6 +160,20 @@ const EduFamAdminDashboard = () => {
     schoolsError,
     schoolsData: schools,
   });
+
+  // Handle tab changes from URL
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  // Handle tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
 
   const handleModalSuccess = () => {
     console.log("🏫 Refreshing school data after successful operation...");
@@ -199,15 +235,15 @@ const EduFamAdminDashboard = () => {
   // Show error if there's a schools error
   if (schoolsError) {
     return (
-      <div className="space-y-6">
-        <Alert variant="destructive">
+      <div className="p-6">
+        <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Error loading schools data: {schoolsError.message}
           </AlertDescription>
         </Alert>
-        <Button onClick={() => refetchSchools()} variant="outline">
-          Retry Loading Schools
+        <Button onClick={testFetchSchools} variant="outline">
+          Test Direct Fetch
         </Button>
       </div>
     );
@@ -215,402 +251,270 @@ const EduFamAdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-blue-600">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            EduFam Admin Dashboard
+          </h1>
+          <p className="text-muted-foreground">
+            Welcome back, {adminUser?.name || adminUser?.email}. Here's what's
+            happening with your system.
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            onClick={() => setShowSchoolRegistration(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add School
+          </Button>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Schools</CardTitle>
-            <Building2 className="h-4 w-4 text-blue-600" />
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {totalSchools}
+            <div className="text-2xl font-bold">
+              {schoolsLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                totalSchools
+              )}
             </div>
-            <p className="text-xs text-gray-600">Registered in platform</p>
+            <p className="text-xs text-muted-foreground">
+              {activeSchools} active schools
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-600">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Active Schools
+              Recent Schools
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {activeSchools}
+            <div className="text-2xl font-bold">
+              {schoolsLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                recentSchools
+              )}
             </div>
-            <p className="text-xs text-gray-600">Currently operational</p>
+            <p className="text-xs text-muted-foreground">Last 30 days</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-600">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              New This Month
-            </CardTitle>
-            <Plus className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {recentSchools}
-            </div>
-            <p className="text-xs text-gray-600">Last 30 days</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-600">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">System Status</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">Operational</div>
-            <p className="text-xs text-gray-600">All systems running</p>
+            <div className="text-2xl font-bold text-green-600">Online</div>
+            <p className="text-xs text-muted-foreground">
+              All systems operational
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">--</div>
+            <p className="text-xs text-muted-foreground">Real-time count</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* System Management Center */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            System Management Center
-          </CardTitle>
-          <CardDescription>
-            Comprehensive administrative tools for managing the EduFam platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Button
-              variant="outline"
-              className="h-20 flex flex-col items-center gap-2 hover:bg-blue-50"
-              onClick={() => setShowUserManagement(true)}
-            >
-              <User className="h-6 w-6 text-blue-600" />
-              <span className="text-sm">User Management</span>
-            </Button>
+      {/* Main Dashboard Tabs */}
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="space-y-6"
+      >
+        <TabsList className="grid w-full grid-cols-8 h-12">
+          <TabsTrigger
+            value="overview"
+            className="flex items-center gap-2 text-sm"
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="schools"
+            className="flex items-center gap-2 text-sm"
+          >
+            <Building2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Schools</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="users"
+            className="flex items-center gap-2 text-sm"
+          >
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Users</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="analytics"
+            className="flex items-center gap-2 text-sm"
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span className="hidden sm:inline">Analytics</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="billing"
+            className="flex items-center gap-2 text-sm"
+          >
+            <DollarSign className="h-4 w-4" />
+            <span className="hidden sm:inline">Billing</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="support"
+            className="flex items-center gap-2 text-sm"
+          >
+            <Headphones className="h-4 w-4" />
+            <span className="hidden sm:inline">Support</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="system"
+            className="flex items-center gap-2 text-sm"
+          >
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">System</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="settings"
+            className="flex items-center gap-2 text-sm"
+          >
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Settings</span>
+          </TabsTrigger>
+        </TabsList>
 
-            <Button
-              variant="outline"
-              className="h-20 flex flex-col items-center gap-2 hover:bg-orange-50"
-              onClick={() => setShowMaintenanceMode(true)}
-            >
-              <Settings className="h-6 w-6 text-orange-600" />
-              <span className="text-sm">Maintenance Mode</span>
-            </Button>
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <EduFamDashboardOverview />
+        </TabsContent>
 
-            <Button
-              variant="outline"
-              className="h-20 flex flex-col items-center gap-2 hover:bg-green-50"
-              onClick={() => setShowDatabaseSettings(true)}
-            >
-              <Database className="h-6 w-6 text-green-600" />
-              <span className="text-sm">Database Settings</span>
-            </Button>
+        {/* Schools Tab */}
+        <TabsContent value="schools" className="space-y-6">
+          <SchoolsModule />
+        </TabsContent>
 
-            <Button
-              variant="outline"
-              className="h-20 flex flex-col items-center gap-2 hover:bg-red-50"
-              onClick={() => setShowSecuritySettings(true)}
-            >
-              <Shield className="h-6 w-6 text-red-600" />
-              <span className="text-sm">Security Settings</span>
-            </Button>
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-6">
+          <UsersModule />
+        </TabsContent>
 
-            <Button
-              variant="outline"
-              className="h-20 flex flex-col items-center gap-2 hover:bg-yellow-50"
-              onClick={() => setShowNotificationSettings(true)}
-            >
-              <Bell className="h-6 w-6 text-yellow-600" />
-              <span className="text-sm">Notification Settings</span>
-            </Button>
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-6">
+          <EduFamAnalyticsOverview />
+        </TabsContent>
 
-            <Button
-              variant="outline"
-              className="h-20 flex flex-col items-center gap-2 hover:bg-purple-50"
-              onClick={() => setShowCompanyDetails(true)}
-            >
-              <Globe className="h-6 w-6 text-purple-600" />
-              <span className="text-sm">Company Details</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Billing Tab */}
+        <TabsContent value="billing" className="space-y-6">
+          <BillingModule />
+        </TabsContent>
 
-      {/* Registered Schools Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Registered Schools ({totalSchools})
-              </CardTitle>
-              <CardDescription>
-                Overview of all schools registered in the Edufam platform
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => {
-                  console.log(
-                    "🏫 EduFamAdminDashboard: Manual refresh triggered"
-                  );
-                  refetchSchools();
-                }}
-                variant="outline"
-                size="sm"
-                disabled={schoolsLoading || schoolsRefetching}
-              >
-                {schoolsLoading || schoolsRefetching ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Refresh"
-                )}
-              </Button>
-              <Button onClick={testFetchSchools} variant="outline" size="sm">
-                Test Fetch
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {schoolsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-                <p className="text-gray-600">Loading schools...</p>
-              </div>
-            </div>
-          ) : !Array.isArray(schools) || schools.length === 0 ? (
-            <div className="text-center py-12">
-              <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No Schools Registered Yet
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Get started by registering the first school in your platform
-              </p>
-              <Button
-                onClick={() => setShowSchoolRegistration(true)}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Register First School
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {schools.map((school) => (
-                <div
-                  key={school.id}
-                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h4 className="font-semibold text-lg text-gray-900">
-                          {school.name}
-                        </h4>
-                        <Badge
-                          className={`${getSchoolStatusColor(
-                            school.status
-                          )} flex items-center gap-1`}
-                        >
-                          {getSchoolStatusIcon(school.status)}
-                          {school.status || "Active"}
-                        </Badge>
-                        {school.school_type && (
-                          <Badge variant="secondary" className="capitalize">
-                            {school.school_type}
-                          </Badge>
-                        )}
-                        {/* Curriculum type is now managed at class level */}
-                      </div>
+        {/* Support Tab */}
+        <TabsContent value="support" className="space-y-6">
+          <SupportModule />
+        </TabsContent>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-gray-600 mb-3">
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 flex-shrink-0" />
-                          <span className="truncate">{school.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 flex-shrink-0" />
-                          <span>{school.phone}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 flex-shrink-0" />
-                          <span className="truncate">{school.address}</span>
-                        </div>
-                        {school.registration_number && (
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 flex-shrink-0" />
-                            <span>Reg: {school.registration_number}</span>
-                          </div>
-                        )}
-                        {school.year_established && (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 flex-shrink-0" />
-                            <span>Est: {school.year_established}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 flex-shrink-0" />
-                          <span>Students: Managed per class</span>
-                        </div>
-                      </div>
+        {/* System Tab */}
+        <TabsContent value="system" className="space-y-6">
+          <SystemHealthModule />
+        </TabsContent>
 
-                      {/* Additional Information */}
-                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                        {school.website_url && (
-                          <div className="flex items-center gap-1">
-                            <Globe className="h-3 w-3" />
-                            <span>Website Available</span>
-                          </div>
-                        )}
-                        {school.term_structure && (
-                          <div>
-                            <span>Term: {school.term_structure}</span>
-                          </div>
-                        )}
-                        <div>
-                          <span>
-                            Created:{" "}
-                            {new Date(school.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="space-y-6">
+          <EduFamSystemSettings />
+        </TabsContent>
+      </Tabs>
 
-                      {/* Owner Information */}
-                      {school.owner_id && (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <div className="flex flex-wrap gap-4 text-sm">
-                            <div>
-                              <span className="font-medium text-gray-700">
-                                Owner ID:
-                              </span>
-                              <span className="font-mono text-xs text-gray-500 ml-1">
-                                {school.owner_id.slice(0, 8)}...
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* School Branding */}
-                      {(school.motto || school.slogan) && (
-                        <div className="mt-2 text-sm italic text-gray-600">
-                          {school.motto && <div>"{school.motto}"</div>}
-                          {school.slogan && (
-                            <div className="text-xs">— {school.slogan}</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2 ml-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="hover:bg-blue-50"
-                        onClick={() => handleViewSchool(school)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="hover:bg-gray-50"
-                        onClick={() => handleEditSchool(school)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* All Modals */}
-      {authUser && (
-        <SchoolRegistrationModal
-          isOpen={showSchoolRegistration}
-          onClose={() => setShowSchoolRegistration(false)}
-          onSuccess={handleModalSuccess}
-          currentUser={authUser}
-        />
-      )}
-
-      {authUser && (
+      {/* Modals */}
+      {showUserManagement && (
         <UserManagementModal
           isOpen={showUserManagement}
           onClose={() => setShowUserManagement(false)}
           onSuccess={handleModalSuccess}
-          currentUser={authUser}
+          user={authUser}
         />
       )}
 
-      {authUser && (
+      {showMaintenanceMode && (
         <MaintenanceModeModal
           isOpen={showMaintenanceMode}
           onClose={() => setShowMaintenanceMode(false)}
           onSuccess={handleModalSuccess}
-          currentUser={authUser}
+          user={authUser}
         />
       )}
 
-      {authUser && (
+      {showDatabaseSettings && (
         <DatabaseSettingsModal
           isOpen={showDatabaseSettings}
           onClose={() => setShowDatabaseSettings(false)}
           onSuccess={handleModalSuccess}
-          currentUser={authUser}
+          user={authUser}
         />
       )}
 
-      {authUser && (
+      {showSecuritySettings && (
         <SecuritySettingsModal
           isOpen={showSecuritySettings}
           onClose={() => setShowSecuritySettings(false)}
           onSuccess={handleModalSuccess}
-          currentUser={authUser}
+          user={authUser}
         />
       )}
 
-      {authUser && (
+      {showNotificationSettings && (
         <NotificationSettingsModal
           isOpen={showNotificationSettings}
           onClose={() => setShowNotificationSettings(false)}
           onSuccess={handleModalSuccess}
-          currentUser={authUser}
+          user={authUser}
         />
       )}
 
-      {authUser && (
+      {showCompanyDetails && (
         <CompanyDetailsModal
           isOpen={showCompanyDetails}
           onClose={() => setShowCompanyDetails(false)}
           onSuccess={handleModalSuccess}
-          currentUser={authUser}
+          user={authUser}
         />
       )}
 
-      {/* School Details Modal */}
-      {selectedSchool && (
+      {showSchoolRegistration && (
+        <SchoolRegistrationModal
+          isOpen={showSchoolRegistration}
+          onClose={() => setShowSchoolRegistration(false)}
+          onSuccess={handleModalSuccess}
+          user={authUser}
+        />
+      )}
+
+      {showSchoolDetails && selectedSchool && (
         <SchoolDetailsModal
-          school={selectedSchool}
           isOpen={showSchoolDetails}
-          onClose={() => {
-            setShowSchoolDetails(false);
-            setSelectedSchool(null);
-          }}
+          onClose={() => setShowSchoolDetails(false)}
+          school={selectedSchool}
+          onSuccess={handleModalSuccess}
+          user={authUser}
         />
       )}
     </div>
