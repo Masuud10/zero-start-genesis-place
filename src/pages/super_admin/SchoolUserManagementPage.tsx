@@ -92,21 +92,24 @@ const SchoolUserManagementPage: React.FC = () => {
       setError(null);
 
       // Use the new database function to fetch school users data
-      const { data, error } = await supabase.rpc('get_school_users_data');
+      const { data, error } = await supabase.rpc('get_school_users_data', { 
+        target_school_id: schoolFilter === "all" ? null : schoolFilter 
+      });
 
       if (error) {
         throw error;
       }
 
-      if (data && (data as any).success) {
-        setUsers((data as any).users || []);
+      if (data) {
+        setUsers(data as SchoolUser[]);
+        // Calculate stats from the data
+        const activeUsers = data.filter((user: any) => user.status === 'active').length;
+        const inactiveUsers = data.filter((user: any) => user.status === 'inactive').length;
         setStats({
-          total_users: (data as any).stats.total_users || 0,
-          active_users: (data as any).stats.active_users || 0,
-          inactive_users: (data as any).stats.inactive_users || 0,
+          total_users: data.length,
+          active_users: activeUsers,
+          inactive_users: inactiveUsers,
         });
-      } else {
-        throw new Error((data as any)?.error || 'Failed to fetch users');
       }
     } catch (err) {
       console.error("Error fetching users:", err);

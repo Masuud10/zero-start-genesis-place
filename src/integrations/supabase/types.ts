@@ -9359,7 +9359,7 @@ export type Database = {
         Returns: number
       }
       get_school_users_data: {
-        Args: { p_school_id?: string }
+        Args: { target_school_id?: string }
         Returns: {
           id: string
           email: string
