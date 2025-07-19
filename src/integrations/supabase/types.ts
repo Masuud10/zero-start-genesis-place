@@ -8959,7 +8959,7 @@ export type Database = {
     Functions: {
       admin_update_user_status: {
         Args: { target_user_id: string; new_status: string }
-        Returns: string
+        Returns: Json
       }
       armor: {
         Args: { "": string }
