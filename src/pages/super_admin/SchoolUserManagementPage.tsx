@@ -177,32 +177,32 @@ const SchoolUserManagementPage: React.FC = () => {
         throw error;
       }
 
-      if (data) {
-        const newStatus = isActive ? "active" : "inactive";
-        // Update local state
-        setUsers((prev) =>
-          prev.map((user) =>
-            user.id === userId ? { ...user, status: newStatus } : user
-          )
-        );
+      // The function returns a text message, not an object
+      const newStatus = isActive ? "active" : "inactive";
+      
+      // Update local state
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.id === userId ? { ...user, status: newStatus } : user
+        )
+      );
 
-        // Update stats
-        setStats((prev) => {
-          if (newStatus === "active") {
-            return {
-              ...prev,
-              active_users: prev.active_users + 1,
-              inactive_users: prev.inactive_users - 1,
-            };
-          } else {
-            return {
-              ...prev,
-              active_users: prev.active_users - 1,
-              inactive_users: prev.inactive_users + 1,
-            };
-          }
-        });
-      }
+      // Update stats
+      setStats((prev) => {
+        if (newStatus === "active") {
+          return {
+            ...prev,
+            active_users: prev.active_users + 1,
+            inactive_users: prev.inactive_users - 1,
+          };
+        } else {
+          return {
+            ...prev,
+            active_users: prev.active_users - 1,
+            inactive_users: prev.inactive_users + 1,
+          };
+        }
+      });
     } catch (err) {
       console.error("Error toggling user status:", err);
       setError(

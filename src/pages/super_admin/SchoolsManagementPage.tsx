@@ -131,6 +131,8 @@ const SchoolsManagementPage: React.FC = () => {
               : school
           )
         );
+      } else {
+        throw new Error(data?.error || "Failed to update school status");
       }
     } catch (err) {
       console.error("Error toggling school status:", err);

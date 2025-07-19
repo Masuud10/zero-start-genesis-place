@@ -27,7 +27,7 @@ serve(async (req) => {
     if (!school_id || typeof is_active !== 'boolean') {
       return new Response(
         JSON.stringify({ 
-          error: 'Missing required fields: school_id and is_active' 
+          error: 'Missing required fields: school_id (uuid), is_active (boolean)' 
         }),
         { 
           status: 400, 
@@ -71,4 +71,4 @@ serve(async (req) => {
       }
     )
   }
-}) 
+})
