@@ -77,7 +77,7 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
       }
 
       // Get creator details for each announcement
-      const creatorIds = [...new Set(data?.map(item => item.created_by).filter(Boolean) || [])];
+      const creatorIds = [...new Set(data?.map(item => item.created_by).filter((id): id is string => id !== null) || [])];
       
       const { data: creators } = await supabase
         .from('profiles')
@@ -91,13 +91,13 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
         title: item.title,
         content: item.content,
         priority: item.priority as 'low' | 'medium' | 'high' | 'urgent',
-        is_global: item.is_global,
-        created_at: item.created_at,
-        created_by: item.created_by,
-        expiry_date: item.expiry_date,
+        is_global: item.is_global ?? false,
+        created_at: item.created_at ?? new Date().toISOString(),
+        created_by: item.created_by ?? '',
+        expiry_date: item.expiry_date || undefined,
         target_audience: item.target_audience || [],
         attachments: item.attachments || [],
-        creator: creatorMap.get(item.created_by)
+        creator: item.created_by ? creatorMap.get(item.created_by) : undefined
       })) || [];
 
       setAnnouncements(enhancedData);
@@ -140,10 +140,10 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
           title: data.title,
           content: data.content,
           priority: data.priority as 'low' | 'medium' | 'high' | 'urgent',
-          is_global: data.is_global,
-          created_at: data.created_at,
-          created_by: data.created_by,
-          expiry_date: data.expiry_date,
+          is_global: data.is_global ?? false,
+          created_at: data.created_at ?? new Date().toISOString(),
+          created_by: data.created_by ?? '',
+          expiry_date: data.expiry_date || undefined,
           target_audience: data.target_audience || [],
           attachments: data.attachments || []
         };
@@ -179,10 +179,10 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
           title: data.title,
           content: data.content,
           priority: data.priority as 'low' | 'medium' | 'high' | 'urgent',
-          is_global: data.is_global,
-          created_at: data.created_at,
-          created_by: data.created_by,
-          expiry_date: data.expiry_date,
+          is_global: data.is_global ?? false,
+          created_at: data.created_at ?? new Date().toISOString(),
+          created_by: data.created_by ?? '',
+          expiry_date: data.expiry_date || undefined,
           target_audience: data.target_audience || [],
           attachments: data.attachments || []
         };

@@ -21,6 +21,11 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
+interface School {
+  id: string;
+  name: string;
+}
+
 interface CreateSchoolUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -34,7 +39,7 @@ const CreateSchoolUserDialog: React.FC<CreateSchoolUserDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [schools, setSchools] = useState<any[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -59,14 +64,14 @@ const CreateSchoolUserDialog: React.FC<CreateSchoolUserDialogProps> = ({
 
     try {
       // Create user with auth and profile using edge function
-      const { data, error } = await supabase.functions.invoke('create-user', {
+      const { data, error } = await supabase.functions.invoke("create-user", {
         body: {
           email: formData.email,
           password: formData.password,
           name: formData.name,
           role: formData.role,
           school_id: formData.school_id,
-        }
+        },
       });
 
       if (error) throw error;
@@ -77,17 +82,26 @@ const CreateSchoolUserDialog: React.FC<CreateSchoolUserDialogProps> = ({
           description: `${formData.name} has been created successfully.`,
         });
 
-        setFormData({ name: "", email: "", password: "", role: "", school_id: "" });
+        setFormData({
+          name: "",
+          email: "",
+          password: "",
+          role: "",
+          school_id: "",
+        });
         onOpenChange(false);
         onUserCreated?.();
       } else {
-        throw new Error(data?.error || 'Failed to create user');
+        throw new Error(data?.error || "Failed to create user");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating school user:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create school user. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to create school user. Please try again.",
         variant: "destructive",
       });
     } finally {

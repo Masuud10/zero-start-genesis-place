@@ -98,7 +98,9 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({
         inactiveUsers:
           users?.filter((u) => u.status === "inactive").length || 0,
         newUsersThisMonth:
-          users?.filter((u) => new Date(u.created_at) >= thisMonth).length || 0,
+          users?.filter(
+            (u) => u.created_at && new Date(u.created_at) >= thisMonth
+          ).length || 0,
         usersByRole: {},
       };
 

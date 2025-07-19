@@ -8,6 +8,11 @@ import React, {
 import { supabase } from "@/integrations/supabase/client";
 
 // Types for dashboard data
+interface ActivityLog {
+  action: string;
+  created_at: string;
+}
+
 interface KPIData {
   schools: {
     total: number;
@@ -28,7 +33,7 @@ interface KPIData {
     churnRate: number;
   };
   activity: {
-    recentLogs: any[];
+    recentLogs: ActivityLog[];
     totalActions: number;
   };
 }
@@ -221,10 +226,14 @@ interface DashboardProviderProps {
   children: ReactNode;
 }
 
+interface User {
+  role: string;
+}
+
 export const DashboardProvider: React.FC<DashboardProviderProps> = ({
   children,
 }) => {
-  const [user] = useState(null); // Placeholder for user context
+  const [user] = useState<User | null>(null); // Placeholder for user context
 
   // Super Admin States
   const [kpiData, setKpiData] = useState<KPIData | null>(null);
@@ -266,12 +275,12 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
         schools: {
           total: 45,
           active: 42,
-          growth: 8.5
+          growth: 8.5,
         },
         users: {
           total: 1250,
           students: 980,
-          growth: 12.3
+          growth: 12.3,
         },
         revenue: {
           mrr: 15420,
@@ -279,18 +288,24 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
           mrrGrowth: 15.2,
           customerCount: 45,
           customerGrowth: 8.5,
-          churnRate: 0.05
+          churnRate: 0.05,
         },
         activity: {
           recentLogs: [
             { action: "User login", created_at: new Date().toISOString() },
-            { action: "School registered", created_at: new Date().toISOString() },
-            { action: "Payment processed", created_at: new Date().toISOString() }
+            {
+              action: "School registered",
+              created_at: new Date().toISOString(),
+            },
+            {
+              action: "Payment processed",
+              created_at: new Date().toISOString(),
+            },
           ],
-          totalActions: 245
-        }
+          totalActions: 245,
+        },
       };
-      
+
       setKpiData(mockKPIs);
     } catch (error) {
       console.error("Error fetching KPIs:", error);

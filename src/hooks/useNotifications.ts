@@ -20,6 +20,7 @@ interface Notification {
     message: string;
     priority: string;
     created_at: string;
+    target_roles?: string[];
   };
 }
 
@@ -74,9 +75,12 @@ export const useNotifications = () => {
                 content: item.admin_communications.message,
                 type: 'announcement',
                 priority: (item.admin_communications.priority as 'low' | 'medium' | 'high' | 'critical') || 'medium',
-                read_at: item.read_at,
-                created_at: item.created_at,
-                admin_communications: item.admin_communications
+                read_at: item.read_at ?? undefined,
+                created_at: item.created_at ?? new Date().toISOString(),
+                admin_communications: {
+                  ...item.admin_communications,
+                  created_at: item.admin_communications.created_at ?? new Date().toISOString()
+                }
               });
             }
           });

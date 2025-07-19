@@ -62,6 +62,20 @@ interface UserStats {
   inactive_admins: number;
 }
 
+interface GetAdminUsersResponse {
+  success: boolean;
+  users: AdminUser[];
+  stats: UserStats;
+  error?: string;
+}
+
+interface UpdateUserStatusResponse {
+  success: boolean;
+  new_status: string;
+  user_id: string;
+  message: string;
+}
+
 const AdminUserManagementPage: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<UserStats>({
@@ -71,11 +85,11 @@ const AdminUserManagementPage: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -87,27 +101,54 @@ const AdminUserManagementPage: React.FC = () => {
       setError(null);
 
       // Use the new database function to fetch admin users data
-      const { data, error } = await supabase.rpc('get_admin_users_data');
+      const { data, error } = await supabase.rpc("get_admin_users_data");
 
       if (error) {
         throw error;
       }
 
-      if (data && (data as any).success) {
-        setUsers((data as any).users || []);
+      // Handle the response based on its structure
+      if (data && typeof data === "object" && "success" in data) {
+        // New JSONB response format
+        const response = data as unknown as GetAdminUsersResponse;
+        if (response.success) {
+          setUsers(response.users || []);
+          setStats({
+            total_admins: response.stats.total_admins || 0,
+            active_admins: response.stats.active_admins || 0,
+            inactive_admins: response.stats.inactive_admins || 0,
+          });
+        } else {
+          throw new Error(response.error || "Failed to fetch admin users");
+        }
+      } else if (Array.isArray(data)) {
+        // Fallback to old table format
+        setUsers(
+          data.map((user) => ({
+            id: user.user_id || user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.is_active ? "active" : "inactive",
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+          }))
+        );
+
+        // Calculate stats from array
+        const totalAdmins = data.length;
+        const activeAdmins = data.filter((u) => u.is_active).length;
         setStats({
-          total_admins: (data as any).stats.total_admins || 0,
-          active_admins: (data as any).stats.active_admins || 0,
-          inactive_admins: (data as any).stats.inactive_admins || 0,
+          total_admins: totalAdmins,
+          active_admins: activeAdmins,
+          inactive_admins: totalAdmins - activeAdmins,
         });
       } else {
-        throw new Error((data as any)?.error || 'Failed to fetch admin users');
+        throw new Error("Invalid response format from database");
       }
     } catch (err) {
       console.error("Error fetching admin users:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch admin users"
-      );
+      setError(err instanceof Error ? err.message : "Failed to fetch users");
     } finally {
       setLoading(false);
     }
@@ -116,43 +157,78 @@ const AdminUserManagementPage: React.FC = () => {
   const toggleUserStatus = async (userId: string, currentStatus: string) => {
     try {
       setUpdatingStatus(userId);
-      const isActive = currentStatus === "inactive";
+      const newStatus = currentStatus === "inactive" ? "active" : "inactive";
 
       const { data, error } = await supabase.rpc("admin_update_user_status", {
         target_user_id: userId,
-        new_status: isActive ? "active" : "inactive",
+        new_status: newStatus,
       });
 
       if (error) {
         throw error;
       }
 
-      // The response is a string message, not an object with success/new_status
-      const newStatus = isActive ? "active" : "inactive";
+      // Handle the response based on its structure
+      if (data && typeof data === "object" && "success" in data) {
+        // New JSONB response format
+        const response = data as unknown as UpdateUserStatusResponse;
+        if (response.success) {
+          // Update local state
+          setUsers((prev) =>
+            prev.map((user) =>
+              user.id === userId
+                ? { ...user, status: response.new_status }
+                : user
+            )
+          );
 
-      // Update local state
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, status: newStatus } : user
-        )
-      );
-
-      // Update stats
-      setStats((prev) => {
-        if (newStatus === "active") {
-          return {
-            ...prev,
-            active_admins: prev.active_admins + 1,
-            inactive_admins: prev.inactive_admins - 1,
-          };
+          // Update stats
+          setStats((prev) => {
+            if (response.new_status === "active") {
+              return {
+                ...prev,
+                active_admins: prev.active_admins + 1,
+                inactive_admins: prev.inactive_admins - 1,
+              };
+            } else {
+              return {
+                ...prev,
+                active_admins: prev.active_admins - 1,
+                inactive_admins: prev.inactive_admins + 1,
+              };
+            }
+          });
         } else {
-          return {
-            ...prev,
-            active_admins: prev.active_admins - 1,
-            inactive_admins: prev.inactive_admins + 1,
-          };
+          throw new Error(response.message || "Failed to update user status");
         }
-      });
+      } else if (data && typeof data === "string") {
+        // Fallback to old string response format
+        // Update local state
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.id === userId ? { ...user, status: newStatus } : user
+          )
+        );
+
+        // Update stats
+        setStats((prev) => {
+          if (newStatus === "active") {
+            return {
+              ...prev,
+              active_admins: prev.active_admins + 1,
+              inactive_admins: prev.inactive_admins - 1,
+            };
+          } else {
+            return {
+              ...prev,
+              active_admins: prev.active_admins - 1,
+              inactive_admins: prev.inactive_admins + 1,
+            };
+          }
+        });
+      } else {
+        throw new Error("Invalid response format from database");
+      }
     } catch (err) {
       console.error("Error toggling user status:", err);
       setError(

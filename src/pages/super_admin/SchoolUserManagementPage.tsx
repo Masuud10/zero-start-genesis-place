@@ -92,8 +92,8 @@ const SchoolUserManagementPage: React.FC = () => {
       setError(null);
 
       // Use the new database function to fetch school users data
-      const { data, error } = await supabase.rpc('get_school_users_data', { 
-        target_school_id: schoolFilter === "all" ? null : schoolFilter 
+      const { data, error } = await supabase.rpc("get_school_users_data", {
+        target_school_id: schoolFilter === "all" ? undefined : schoolFilter,
       });
 
       if (error) {
@@ -103,8 +103,12 @@ const SchoolUserManagementPage: React.FC = () => {
       if (data) {
         setUsers(data as SchoolUser[]);
         // Calculate stats from the data
-        const activeUsers = data.filter((user: any) => user.status === 'active').length;
-        const inactiveUsers = data.filter((user: any) => user.status === 'inactive').length;
+        const activeUsers = data.filter(
+          (user: SchoolUser) => user.status === "active"
+        ).length;
+        const inactiveUsers = data.filter(
+          (user: SchoolUser) => user.status === "inactive"
+        ).length;
         setStats({
           total_users: data.length,
           active_users: activeUsers,
@@ -153,7 +157,7 @@ const SchoolUserManagementPage: React.FC = () => {
 
       // The function returns a text message, not an object
       const newStatus = isActive ? "active" : "inactive";
-      
+
       // Update local state
       setUsers((prev) =>
         prev.map((user) =>
