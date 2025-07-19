@@ -9449,7 +9449,7 @@ export type Database = {
         Returns: boolean
       }
       is_edufam_admin: {
-        Args: { user_id?: string }
+        Args: Record<PropertyKey, never> | { user_id?: string }
         Returns: boolean
       }
       is_finance_officer_authorized_for_school: {
