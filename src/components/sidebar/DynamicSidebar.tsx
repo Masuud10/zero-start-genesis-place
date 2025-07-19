@@ -50,58 +50,79 @@ const DynamicSidebar = () => {
     // Super Admin Menu Items
     {
       id: "overview",
-      label: "Overview",
+      label: "Dashboard Overview",
       icon: BarChart3,
       description: "Platform overview and KPIs",
       roles: ["super_admin"],
     },
     {
-      id: "schools",
-      label: "Schools Management",
-      icon: Building2,
-      description: "Manage all schools",
+      id: "admin_users",
+      label: "Admin User Management",
+      icon: UserCheck,
+      description: "Manage admin users",
       roles: ["super_admin"],
     },
     {
-      id: "users",
-      label: "User Management",
+      id: "school_users",
+      label: "School User Management",
       icon: Users,
-      description: "Manage school and admin users",
+      description: "Manage school users",
+      roles: ["super_admin"],
+    },
+    {
+      id: "schools_management",
+      label: "Schools Management",
+      icon: Building2,
+      description: "Register and manage schools",
+      roles: ["super_admin"],
+    },
+    {
+      id: "maintenance_mode",
+      label: "Maintenance Mode",
+      icon: Settings,
+      description: "System maintenance controls",
+      roles: ["super_admin"],
+    },
+    {
+      id: "database_settings",
+      label: "Database Settings",
+      icon: Database,
+      description: "Database configuration",
+      roles: ["super_admin"],
+    },
+    {
+      id: "security_settings",
+      label: "Security Settings",
+      icon: Shield,
+      description: "Security configuration",
+      roles: ["super_admin"],
+    },
+    {
+      id: "notification_settings",
+      label: "Notification Settings",
+      icon: Megaphone,
+      description: "Notification preferences",
+      roles: ["super_admin"],
+    },
+    {
+      id: "company_details",
+      label: "Company Details",
+      icon: Building2,
+      description: "Company information",
       roles: ["super_admin"],
     },
     {
       id: "analytics",
       label: "Analytics",
       icon: TrendingUp,
-      description: "Business intelligence and analytics",
+      description: "Business intelligence",
       roles: ["super_admin"],
     },
     {
-      id: "billing",
-      label: "Billing Management",
-      icon: DollarSign,
-      description: "Manage billing and subscriptions",
-      roles: ["super_admin"],
-    },
-    {
-      id: "security",
-      label: "Security & Compliance",
-      icon: Shield,
-      description: "Security settings and audit logs",
-      roles: ["super_admin"],
-    },
-    {
-      id: "system",
+      id: "system_health",
       label: "System Health",
       icon: Activity,
-      description: "System monitoring and health",
-      roles: ["super_admin"],
-    },
-    {
-      id: "settings",
-      label: "System Settings",
-      icon: Settings,
-      description: "Platform configuration",
+      description: "System monitoring",
       roles: ["super_admin"],
     },
 
@@ -308,26 +329,6 @@ const DynamicSidebar = () => {
         </div>
       </div>
 
-      {/* User Info */}
-      <div className="p-4 border-b">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-            {getRoleIcon()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
-              {user?.name || "User"}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user?.email}
-            </p>
-            <Badge variant="outline" className="text-xs mt-1">
-              {getRoleLabel()}
-            </Badge>
-          </div>
-        </div>
-      </div>
-
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto p-4">
         <nav className="space-y-1">
@@ -347,18 +348,6 @@ const DynamicSidebar = () => {
             );
           })}
         </nav>
-      </div>
-
-      {/* Footer */}
-      <div className="p-4 border-t">
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-sm"
-          onClick={signOut}
-        >
-          <LogOut className="h-4 w-4 mr-3" />
-          Sign Out
-        </Button>
       </div>
     </div>
   );

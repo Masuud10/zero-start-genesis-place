@@ -15,8 +15,10 @@ import {
   PieChart,
   Target,
   Clock,
+  LogOut,
 } from "lucide-react";
 import { useDashboard } from "@/contexts/DashboardContext";
+import { useConsolidatedAuth } from "@/hooks/useConsolidatedAuth";
 import { LineChart, BarChart, PieChart as CustomPieChart } from "@/components/ui/BeautifulCharts";
 
 interface DashboardOverviewProps {
@@ -31,6 +33,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   userName = "Admin" 
 }) => {
   const { kpiData, loadingKPIs } = useDashboard();
+  const { signOut } = useConsolidatedAuth();
 
   const getRoleIcon = () => {
     switch (role) {
@@ -45,7 +48,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   const getRoleColor = () => {
     switch (role) {
-      case "super_admin": return "from-yellow-500 to-amber-600";
+      case "super_admin": return "from-teal-400 to-teal-600";
       case "support_hr": return "from-blue-500 to-cyan-600";
       case "software_engineer": return "from-green-500 to-emerald-600";
       case "sales_marketing": return "from-purple-500 to-violet-600";
@@ -169,11 +172,20 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <p className="text-white/80 capitalize">{role.replace('_', ' ')} Dashboard</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
                 <Activity className="h-3 w-3 mr-1" />
                 Online
               </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={signOut}
+                className="bg-white/10 hover:bg-white/20 text-white border-white/30"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </CardContent>
