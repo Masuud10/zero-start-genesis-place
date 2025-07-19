@@ -9302,7 +9302,20 @@ export type Database = {
       }
       get_admin_users_data: {
         Args: Record<PropertyKey, never>
-        Returns: Json
+        Returns: {
+          id: string
+          user_id: string
+          email: string
+          name: string
+          role: string
+          app_type: string
+          permissions: Json
+          is_active: boolean
+          last_login_at: string
+          created_at: string
+          updated_at: string
+          created_by: string
+        }[]
       }
       get_class_report_data: {
         Args: { p_class_id: string; p_academic_year: string; p_term?: string }
@@ -9346,12 +9359,25 @@ export type Database = {
         Returns: number
       }
       get_school_users_data: {
-        Args: Record<PropertyKey, never>
+        Args: Record<PropertyKey, never> | { p_school_id?: string }
         Returns: Json
       }
       get_schools_data: {
         Args: Record<PropertyKey, never>
-        Returns: Json
+        Returns: {
+          id: string
+          name: string
+          email: string
+          phone: string
+          address: string
+          school_type: string
+          status: string
+          subscription_plan: string
+          created_at: string
+          updated_at: string
+          user_count: number
+          student_count: number
+        }[]
       }
       get_student_certificate_data: {
         Args: {
