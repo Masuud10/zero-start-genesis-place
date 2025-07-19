@@ -9,7 +9,7 @@ export const useSchoolData = () => {
     address: string;
     phone: string;
     email: string;
-    curriculum: string;
+    school_type: string;
     created_at: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ export const useSchoolData = () => {
 
       const { data, error: fetchError } = await supabase
         .from('schools')
-        .select('*')
+        .select('id, name, address, phone, email, school_type, created_at')
         .eq('id', schoolId)
         .single();
 
@@ -35,7 +35,15 @@ export const useSchoolData = () => {
       }
 
       if (data) {
-        setSchoolData(data);
+        setSchoolData({
+          id: data.id,
+          name: data.name,
+          address: data.address,
+          phone: data.phone,
+          email: data.email,
+          school_type: data.school_type,
+          created_at: data.created_at
+        });
       } else {
         setError('School not found');
       }
@@ -59,7 +67,7 @@ export const useSchoolData = () => {
         .from('schools')
         .update(updates)
         .eq('id', schoolData.id)
-        .select()
+        .select('id, name, address, phone, email, school_type, created_at')
         .single();
 
       if (updateError) {
@@ -67,7 +75,15 @@ export const useSchoolData = () => {
       }
 
       if (data) {
-        setSchoolData(data);
+        setSchoolData({
+          id: data.id,
+          name: data.name,
+          address: data.address,
+          phone: data.phone,
+          email: data.email,
+          school_type: data.school_type,
+          created_at: data.created_at
+        });
       }
     } catch (err) {
       console.error('Error updating school data:', err);

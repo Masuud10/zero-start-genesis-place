@@ -168,7 +168,7 @@ export const BarChart: React.FC<BarChartProps> = ({
                         const element = document.querySelector(
                           `[data-bar="${index}"]`
                         );
-                        if (element) {
+                        if (element && element instanceof HTMLElement) {
                           element.style.width = `${percentage}%`;
                         }
                       }
@@ -241,7 +241,7 @@ export const PieChart: React.FC<PieChartProps> = ({
                 const percentage = (item.value / total) * 100;
                 const angle = (percentage / 100) * 360;
                 const endAngle = currentAngle + angle;
-                const largeArc = angle > 180 ? 1 : 0;
+                const largeArc = angle > 180;
 
                 const path = createArc(currentAngle, endAngle, largeArc);
                 const color = item.color || colors[index % colors.length];
@@ -367,7 +367,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
                 const percentage = (item.value / total) * 100;
                 const angle = (percentage / 100) * 360;
                 const endAngle = currentAngle + angle;
-                const largeArc = angle > 180 ? 1 : 0;
+                const largeArc = angle > 180;
 
                 const path = createArc(currentAngle, endAngle, largeArc);
                 const color = item.color || colors[index % colors.length];

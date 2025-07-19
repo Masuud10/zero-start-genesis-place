@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -6,14 +5,12 @@ export interface EnhancedAnnouncement {
   id: string;
   title: string;
   content: string;
-  type: 'info' | 'warning' | 'success' | 'error';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   is_global: boolean;
   created_at: string;
   created_by: string;
-  expires_at?: string;
-  recipients?: string[];
-  read_by?: string[];
+  expiry_date?: string;
+  target_audience: string[];
   attachments?: string[];
   creator?: {
     name: string;
@@ -22,7 +19,6 @@ export interface EnhancedAnnouncement {
 }
 
 export interface AnnouncementFilters {
-  type?: string;
   priority?: string;
   isGlobal?: boolean;
   dateRange?: {
@@ -37,7 +33,6 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Since this is an admin application, we'll fetch all announcements
     fetchAnnouncements();
   }, [filters]);
 
@@ -52,22 +47,17 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
           id,
           title,
           content,
-          type,
           priority,
           is_global,
           created_at,
           created_by,
-          expires_at,
-          recipients,
-          read_by,
+          expiry_date,
+          target_audience,
           attachments
         `)
         .order('created_at', { ascending: false });
 
       // Apply filters
-      if (filters.type) {
-        query = query.eq('type', filters.type);
-      }
       if (filters.priority) {
         query = query.eq('priority', filters.priority);
       }
@@ -96,8 +86,17 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
 
       const creatorMap = new Map(creators?.map(c => [c.id, c]) || []);
 
-      const enhancedData = data?.map(item => ({
-        ...item,
+      const enhancedData: EnhancedAnnouncement[] = data?.map(item => ({
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        priority: item.priority as 'low' | 'medium' | 'high' | 'urgent',
+        is_global: item.is_global,
+        created_at: item.created_at,
+        created_by: item.created_by,
+        expiry_date: item.expiry_date,
+        target_audience: item.target_audience || [],
+        attachments: item.attachments || [],
         creator: creatorMap.get(item.created_by)
       })) || [];
 
@@ -114,15 +113,19 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
     try {
       setError(null);
 
-      // Since user context is removed, we'll use a placeholder creator ID
       const creatorId = 'admin_user_id'; // This should be provided externally
 
       const { data, error: createError } = await supabase
         .from('announcements')
         .insert({
-          ...announcement,
-          created_by: creatorId,
-          is_global: true // Admin announcements are global
+          title: announcement.title,
+          content: announcement.content,
+          priority: announcement.priority,
+          is_global: announcement.is_global,
+          expiry_date: announcement.expiry_date,
+          target_audience: announcement.target_audience,
+          attachments: announcement.attachments,
+          created_by: creatorId
         })
         .select()
         .single();
@@ -132,7 +135,19 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
       }
 
       if (data) {
-        setAnnouncements(prev => [data, ...prev]);
+        const newAnnouncement: EnhancedAnnouncement = {
+          id: data.id,
+          title: data.title,
+          content: data.content,
+          priority: data.priority as 'low' | 'medium' | 'high' | 'urgent',
+          is_global: data.is_global,
+          created_at: data.created_at,
+          created_by: data.created_by,
+          expiry_date: data.expiry_date,
+          target_audience: data.target_audience || [],
+          attachments: data.attachments || []
+        };
+        setAnnouncements(prev => [newAnnouncement, ...prev]);
       }
 
       return data;
@@ -159,8 +174,20 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
       }
 
       if (data) {
+        const updatedAnnouncement: EnhancedAnnouncement = {
+          id: data.id,
+          title: data.title,
+          content: data.content,
+          priority: data.priority as 'low' | 'medium' | 'high' | 'urgent',
+          is_global: data.is_global,
+          created_at: data.created_at,
+          created_by: data.created_by,
+          expiry_date: data.expiry_date,
+          target_audience: data.target_audience || [],
+          attachments: data.attachments || []
+        };
         setAnnouncements(prev => 
-          prev.map(announcement => announcement.id === id ? data : announcement)
+          prev.map(announcement => announcement.id === id ? updatedAnnouncement : announcement)
         );
       }
 
@@ -195,7 +222,6 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
 
   const markAsRead = async (announcementId: string) => {
     try {
-      // Since user context is removed, we'll use a placeholder user ID
       const userId = 'current_user_id'; // This should be provided externally
       
       const { error: updateError } = await supabase
@@ -203,6 +229,7 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
         .upsert({
           announcement_id: announcementId,
           user_id: userId,
+          user_role: 'admin',
           read_at: new Date().toISOString()
         });
 
@@ -210,17 +237,6 @@ export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
         throw updateError;
       }
 
-      setAnnouncements(prev => 
-        prev.map(announcement => {
-          if (announcement.id === announcementId) {
-            return {
-              ...announcement,
-              read_by: [...(announcement.read_by || []), userId]
-            };
-          }
-          return announcement;
-        })
-      );
     } catch (err) {
       console.error('Error marking announcement as read:', err);
       setError(err instanceof Error ? err.message : 'Failed to mark announcement as read');

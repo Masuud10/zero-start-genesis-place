@@ -2,11 +2,11 @@
 import { useCallback } from 'react';
 import { useAuditLogger } from './useAuditLogger';
 
-export const usePaymentAuditLogger = () => {
+export const usePaymentAuditLogger = (userId?: string) => {
   const { logPaymentAction } = useAuditLogger();
 
   const logPaymentProcessing = useCallback(async (paymentData: any, success: boolean, error?: string) => {
-    if (!user) return;
+    if (!userId) return;
 
     try {
       await logPaymentAction(
@@ -24,10 +24,10 @@ export const usePaymentAuditLogger = () => {
     } catch (auditError) {
       console.error('Failed to log payment processing:', auditError);
     }
-  }, [logPaymentAction, user]);
+  }, [logPaymentAction, userId]);
 
   const logFeeUpdate = useCallback(async (feeId: string, oldValue: any, newValue: any) => {
-    if (!user) return;
+    if (!userId) return;
 
     try {
       await logPaymentAction(
@@ -43,7 +43,7 @@ export const usePaymentAuditLogger = () => {
     } catch (auditError) {
       console.error('Failed to log fee update:', auditError);
     }
-  }, [logPaymentAction, user]);
+  }, [logPaymentAction, userId]);
 
   return {
     logPaymentProcessing,
