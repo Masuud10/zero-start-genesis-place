@@ -137,8 +137,8 @@ const AdminUserManagementPage: React.FC = () => {
       const isActive = currentStatus === "inactive";
 
       const { data, error } = await supabase.rpc("admin_update_user_status", {
-        user_id: userId,
-        is_active: isActive,
+        target_user_id: userId,
+        new_status: isActive ? "active" : "inactive",
       });
 
       if (error) {
@@ -474,9 +474,9 @@ const AdminUserManagementPage: React.FC = () => {
 
       {/* Create User Dialog */}
       <CreateAdminUserDialog
-        isOpen={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
-        onSuccess={handleUserCreated}
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onUserCreated={() => fetchUsers()}
       />
     </div>
   );

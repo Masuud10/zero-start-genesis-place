@@ -432,9 +432,9 @@ const SchoolsManagementPage: React.FC = () => {
 
       {/* Create School Dialog */}
       <CreateSchoolDialog
-        isOpen={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
-        onSuccess={handleSchoolCreated}
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSchoolCreated={() => fetchSchools()}
       />
     </div>
   );

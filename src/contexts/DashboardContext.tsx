@@ -257,8 +257,6 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
 
   // Fetch Super Admin KPIs
   const fetchKPIs = async () => {
-    if (!user || user.role !== "super_admin") return;
-
     try {
       setLoadingKPIs(true);
       setErrorKPIs(null);
@@ -268,12 +266,15 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
       } = await supabase.auth.getSession();
       if (!session) throw new Error("No session found");
 
-      const response = await fetch("/functions/v1/get-super-admin-kpis", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `https://lmqyizrnuahkmwauonqr.supabase.co/functions/v1/get-super-admin-kpis`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch KPIs");
@@ -452,126 +453,34 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     }
   };
 
-  // Initial data fetching based on user role
+  // Initial data fetching
   useEffect(() => {
-    if (!user) return;
-
-    // Fetch data based on user role
-    switch (user.role) {
-      case "super_admin":
-        fetchKPIs();
-        fetchSupportTickets();
-        fetchCRMLeads();
-        fetchSystemHealth();
-        fetchFinancialData();
-        break;
-      case "support_hr":
-        fetchSupportTickets();
-        break;
-      case "sales_marketing":
-        fetchCRMLeads();
-        break;
-      case "software_engineer":
-        fetchSystemHealth();
-        break;
-      case "finance":
-        fetchFinancialData();
-        break;
-    }
-  }, [user]);
+    // Always fetch KPIs for now since user is commented out
+    fetchKPIs();
+  }, []);
 
   // Set up real-time subscriptions for live updates
   useEffect(() => {
-    if (!user) return;
+    // Real-time subscription for admin tables
+    const adminSubscription = supabase
+      .channel("admin_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "admin_users",
+        },
+        () => {
+          fetchKPIs();
+        }
+      )
+      .subscribe();
 
-    // Real-time subscription for support tickets (Support HR & Super Admin)
-    if (user.role === "support_hr" || user.role === "super_admin") {
-      const ticketsSubscription = supabase
-        .channel("support_tickets")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "support_tickets",
-          },
-          () => {
-            fetchSupportTickets();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(ticketsSubscription);
-      };
-    }
-
-    // Real-time subscription for CRM leads (Sales Marketing & Super Admin)
-    if (user.role === "sales_marketing" || user.role === "super_admin") {
-      const leadsSubscription = supabase
-        .channel("crm_leads")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "crm_leads",
-          },
-          () => {
-            fetchCRMLeads();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(leadsSubscription);
-      };
-    }
-
-    // Real-time subscription for system health (Software Engineer & Super Admin)
-    if (user.role === "software_engineer" || user.role === "super_admin") {
-      const healthSubscription = supabase
-        .channel("system_health")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "system_health_metrics",
-          },
-          () => {
-            fetchSystemHealth();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(healthSubscription);
-      };
-    }
-
-    // Real-time subscription for financial data (Finance & Super Admin)
-    if (user.role === "finance" || user.role === "super_admin") {
-      const financialSubscription = supabase
-        .channel("financial_data")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "financial_metrics",
-          },
-          () => {
-            fetchFinancialData();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(financialSubscription);
-      };
-    }
-  }, [user]);
+    return () => {
+      supabase.removeChannel(adminSubscription);
+    };
+  }, []);
 
   const value: DashboardContextType = {
     // Super Admin Data

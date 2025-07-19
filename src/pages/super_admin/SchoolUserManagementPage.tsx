@@ -511,9 +511,9 @@ const SchoolUserManagementPage: React.FC = () => {
 
       {/* Create User Dialog */}
       <CreateSchoolUserDialog
-        isOpen={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
-        onSuccess={handleUserCreated}
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onUserCreated={() => fetchUsers()}
       />
     </div>
   );
