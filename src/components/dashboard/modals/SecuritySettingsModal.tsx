@@ -111,8 +111,8 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
         return;
       }
 
-      if (data) {
-        setConfig(data.setting_value as SecurityConfig);
+      if (data && typeof data.setting_value === 'object') {
+        setConfig(data.setting_value as unknown as SecurityConfig);
       }
     } catch (error) {
       console.error("Error fetching security config:", error);
@@ -148,7 +148,7 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
 
       const { error } = await supabase.from("system_settings").upsert({
         setting_key: "security_config",
-        setting_value: config,
+        setting_value: config as unknown as Record<string, any>,
         updated_at: new Date().toISOString(),
       });
 

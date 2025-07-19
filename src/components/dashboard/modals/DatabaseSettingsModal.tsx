@@ -139,8 +139,8 @@ const DatabaseSettingsModal: React.FC<DatabaseSettingsModalProps> = ({
         return;
       }
 
-      if (data) {
-        setConfig(data.setting_value as DatabaseConfig);
+      if (data && typeof data.setting_value === 'object') {
+        setConfig(data.setting_value as unknown as DatabaseConfig);
       }
     } catch (error) {
       console.error("Error fetching database config:", error);
@@ -153,7 +153,7 @@ const DatabaseSettingsModal: React.FC<DatabaseSettingsModalProps> = ({
 
       const { error } = await supabase.from("system_settings").upsert({
         setting_key: "database_config",
-        setting_value: config,
+        setting_value: config as unknown as Record<string, any>,
         updated_at: new Date().toISOString(),
       });
 

@@ -131,7 +131,7 @@ interface FinancialKPIs {
     customerCount: number;
     churnRate: number;
   };
-  expenses: {
+  expensesSummary: {
     total: number;
     byCategory: Record<string, number>;
   };

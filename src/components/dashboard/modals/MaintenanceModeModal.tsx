@@ -85,7 +85,7 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
       const { data, error } = await supabase
         .from("system_settings")
         .select("*")
-        .eq("key", "maintenance_mode")
+        .eq("setting_key", "maintenance_mode")
         .single();
 
       if (error && error.code !== "PGRST116") {
@@ -94,7 +94,7 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
       }
 
       if (data) {
-        const maintenanceData = data.value as MaintenanceStatus;
+        const maintenanceData = data.setting_value as unknown as MaintenanceStatus;
         setStatus(maintenanceData);
         setMaintenanceMessage(maintenanceData.message);
         setScheduledStart(maintenanceData.scheduledStart || "");
@@ -122,8 +122,8 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
 
       // Update maintenance status in database
       const { error } = await supabase.from("system_settings").upsert({
-        key: "maintenance_mode",
-        value: updatedStatus,
+        setting_key: "maintenance_mode",
+        setting_value: updatedStatus as unknown as Record<string, any>,
         updated_at: new Date().toISOString(),
       });
 
@@ -154,8 +154,8 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
       };
 
       const { error } = await supabase.from("system_settings").upsert({
-        key: "maintenance_mode",
-        value: updatedStatus,
+        setting_key: "maintenance_mode",
+        setting_value: updatedStatus as unknown as Record<string, any>,
         updated_at: new Date().toISOString(),
       });
 
