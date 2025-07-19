@@ -1,5 +1,4 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 // Basic billing record type for internal admin use
@@ -59,8 +58,6 @@ const mockBillingStats: BillingStats = {
 
 // Hook for billing records
 export const useBillingRecords = () => {
-  const { user } = useAuth();
-
   return useQuery({
     queryKey: ['billing-records'],
     queryFn: async (): Promise<BillingRecord[]> => {
@@ -68,15 +65,12 @@ export const useBillingRecords = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       return mockBillingRecords;
     },
-    enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
 // Hook for billing stats
 export const useBillingStats = () => {
-  const { user } = useAuth();
-
   return useQuery({
     queryKey: ['billing-stats'],
     queryFn: async (): Promise<BillingStats> => {
@@ -84,14 +78,12 @@ export const useBillingStats = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       return mockBillingStats;
     },
-    enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
 // Hook for billing actions
 export const useBillingActions = () => {
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const createSetupFees = useMutation({
@@ -144,8 +136,6 @@ export const useBillingActions = () => {
 
 // Hook for all schools (simplified for internal admin use)
 export const useAllSchools = () => {
-  const { user } = useAuth();
-
   return useQuery({
     queryKey: ['all-schools'],
     queryFn: async () => {
@@ -156,7 +146,6 @@ export const useAllSchools = () => {
         { id: '2', name: 'Demo School 2', status: 'active' },
       ];
     },
-    enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }; 

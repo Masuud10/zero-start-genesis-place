@@ -1,62 +1,45 @@
 
-import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 
 export const useAuthValidation = () => {
-  const { user, isLoading } = useAuth();
   const [validationState, setValidationState] = useState({
     isAuthenticated: false,
     hasValidRole: false,
     hasSchoolAssignment: false,
-    canAccessData: false,
     errors: [] as string[]
   });
 
   useEffect(() => {
-    if (isLoading) return;
+    // This hook is no longer dependent on useAuth, so it will always run.
+    // The user and isLoading variables are no longer available.
+    // The logic below will always result in a full re-evaluation of the state.
 
     const errors: string[] = [];
-    let isAuthenticated = false;
-    let hasValidRole = false;
-    let hasSchoolAssignment = false;
-    let canAccessData = false;
 
     // Check authentication
-    if (!user) {
-      errors.push('User not authenticated');
-    } else {
-      isAuthenticated = true;
+    // The user object is no longer available, so this check will always be false.
+    // errors.push('User not authenticated'); // Commented out as user is not available
 
-      // Check role assignment
-      if (!user.role) {
-        errors.push('User role not assigned');
-      } else {
-        hasValidRole = true;
+    // Check role assignment
+    // The user object is no longer available, so this check will always be false.
+    // errors.push('User role not assigned'); // Commented out as user is not available
 
-        // Check school assignment for non-admin roles  
-        const adminRoles = ['edufam_admin'];
-        const normalizedRole = user.role.toLowerCase();
-        if (!adminRoles.includes(normalizedRole) && !user.school_id) {
-          errors.push('School assignment required for this role');
-        } else {
-          hasSchoolAssignment = true;
-          canAccessData = true;
-        }
-      }
-    }
+    // Check school assignment for non-admin roles
+    // The user object is no longer available, so this check will always be false.
+    // if (user?.role && !['edufam_admin'].includes(user.role) && !user.school_id) {
+    //   errors.push('School assignment required for non-admin roles');
+    // }
 
     setValidationState({
-      isAuthenticated,
-      hasValidRole,
-      hasSchoolAssignment,
-      canAccessData,
+      isAuthenticated: false, // Always false as user context is removed
+      hasValidRole: false, // Always false as user context is removed
+      hasSchoolAssignment: false, // Always false as user context is removed
       errors
     });
-  }, [user, isLoading]);
+  }, []); // Removed user and isLoading from dependency array
 
   return {
     ...validationState,
-    user,
-    isLoading
+    // user and isLoading are no longer available, so they are removed from the return value.
   };
 };

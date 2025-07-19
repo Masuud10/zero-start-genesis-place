@@ -1,11 +1,9 @@
 
 import { useCallback } from 'react';
 import { useAuditLogger } from './useAuditLogger';
-import { useAuth } from '@/contexts/AuthContext';
 
 export const usePaymentAuditLogger = () => {
   const { logPaymentAction } = useAuditLogger();
-  const { user } = useAuth();
 
   const logPaymentProcessing = useCallback(async (paymentData: any, success: boolean, error?: string) => {
     if (!user) return;

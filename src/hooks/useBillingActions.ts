@@ -1,10 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 // Hook for billing actions
 export const useBillingActions = () => {
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const createBillingRecord = useMutation({

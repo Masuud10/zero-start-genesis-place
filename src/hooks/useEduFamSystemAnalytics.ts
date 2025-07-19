@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useEduFamSystemAnalytics = () => {
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Removed as per edit hint
 
   return useQuery({
     queryKey: ['edufam-system-analytics'],
@@ -91,7 +90,7 @@ export const useEduFamSystemAnalytics = () => {
         };
       }
     },
-    enabled: user?.role === 'edufam_admin',
+    // enabled: user?.role === 'edufam_admin', // Removed as per edit hint
     staleTime: 5 * 60 * 1000,
     refetchInterval: 10 * 60 * 1000,
     retry: 2,

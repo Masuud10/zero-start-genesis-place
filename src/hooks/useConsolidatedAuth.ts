@@ -27,30 +27,42 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
 
-  // Fetch user profile with timeout and retry logic
-  const fetchProfile = useCallback(async (userId: string): Promise<any> => {
+  // Fetch admin user profile with timeout and retry logic
+  const fetchAdminProfile = useCallback(async (userId: string): Promise<any> => {
     const maxRetries = 3;
     let lastError: any;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`🔐 Fetching profile for user ${userId} (attempt ${attempt})`);
+        console.log(`🔐 Fetching admin profile for user ${userId} (attempt ${attempt})`);
         
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role, name, school_id, avatar_url, mfa_enabled, status')
-          .eq('id', userId)
+        // ONLY fetch from admin_users table - this is an admin-only application
+        const { data: adminData, error: adminError } = await supabase
+          .from('admin_users')
+          .select('role, name, email, is_active, permissions')
+          .eq('user_id', userId)
+          .eq('is_active', true)
           .single();
 
-        if (error) {
-          throw error;
+        if (adminError) {
+          throw adminError;
         }
 
-        console.log('✅ Profile fetched successfully:', data);
-        return data;
+        if (adminData) {
+          console.log('✅ Admin user found:', adminData);
+          return {
+            ...adminData,
+            is_admin: true,
+            school_id: null // Admin users don't have school_id
+          };
+        }
+
+        // If no admin user found, throw error - this application is admin-only
+        throw new Error('Access denied. This application is restricted to admin users only.');
+
       } catch (error) {
         lastError = error;
-        console.warn(`⚠️ Profile fetch attempt ${attempt} failed:`, error);
+        console.warn(`⚠️ Admin profile fetch attempt ${attempt} failed:`, error);
         
         if (attempt < maxRetries) {
           // Wait before retry with exponential backoff
@@ -59,15 +71,15 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
       }
     }
 
-    console.error('❌ All profile fetch attempts failed');
+    console.error('❌ All admin profile fetch attempts failed');
     throw lastError;
   }, []);
 
-  // Process user authentication
+  // Process user authentication - ADMIN ONLY
   const processUser = useCallback(async (authUser: any) => {
     if (!isMountedRef.current) return;
     
-    console.log('🔐 Processing user:', authUser?.email);
+    console.log('🔐 Processing admin user:', authUser?.email);
     
     try {
       if (!authUser) {
@@ -92,86 +104,62 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
         return;
       }
 
-      // Check if user is active from metadata
-      const userMetadata = authUser.user_metadata || {};
-      const isActiveFromMetadata = userMetadata.is_active !== false && userMetadata.status !== 'inactive';
-
-      if (!isActiveFromMetadata) {
-        console.log('🔐 User is inactive, signing out');
-        await supabase.auth.signOut();
-        setState({
-          user: null,
-          isLoading: false,
-          error: 'Your account has been deactivated. Please contact your administrator.',
-          isInitialized: true
-        });
-        return;
-      }
-
-      // Fetch profile with timeout protection
-      console.log('🔐 Fetching profile for', authUser.id);
-      const profile = await fetchProfile(authUser.id);
+      // Fetch admin profile with timeout protection
+      console.log('🔐 Fetching admin profile for', authUser.id);
+      const profile = await fetchAdminProfile(authUser.id);
       
       if (!isMountedRef.current) return;
 
-      // Validate role exists
+      // Validate admin role exists
       if (!profile?.role) {
-        console.error('🔐 No valid role found in database');
+        console.error('🔐 No valid admin role found in database');
         setState({
           user: null,
           isLoading: false,
-          error: 'Your account is not properly configured. Please contact your administrator.',
+          error: 'Your admin account is not properly configured. Please contact your administrator.',
           isInitialized: true
         });
         return;
       }
 
-      // Validate school assignment for non-admin roles
-      const requiresSchoolAssignment = !['edufam_admin'].includes(profile.role);
-      const hasSchoolAssignment = !!profile?.school_id;
-      
-      if (requiresSchoolAssignment && !hasSchoolAssignment) {
-        console.error('🔐 Role requires school assignment but none found:', profile.role);
+      // Validate that this is an admin user
+      if (!profile.is_admin) {
+        console.error('🔐 Non-admin user attempted to access admin application');
         setState({
           user: null,
           isLoading: false,
-          error: 'Your account is not properly configured. Please contact your administrator.',
+          error: 'Access denied. This application is restricted to admin users only.',
           isInitialized: true
         });
         return;
       }
 
-      console.log('🔐 Using database role:', profile.role);
-
-      // Determine school assignment
-      const userSchoolId = profile?.school_id ||
-                        authUser.user_metadata?.school_id ||
-                        authUser.app_metadata?.school_id;
+      console.log('🔐 Admin user validated:', profile.role);
 
       const userData: AuthUser = {
         id: authUser.id,
-        email: authUser.email,
+        email: profile.email || authUser.email,
         role: profile.role,
         name: profile?.name ||
               authUser.user_metadata?.name ||
               authUser.user_metadata?.full_name ||
               authUser.email.split('@')[0] ||
-              'User',
-        school_id: userSchoolId,
-        avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url,
+              'Admin User',
+        school_id: null, // Admin users don't have school_id
+        avatar_url: authUser.user_metadata?.avatar_url,
         created_at: authUser.created_at,
         updated_at: authUser.updated_at,
         user_metadata: authUser.user_metadata || {},
         app_metadata: authUser.app_metadata || {},
-        mfa_enabled: profile?.mfa_enabled || false,
+        mfa_enabled: false, // Admin users don't use MFA from profiles
         last_login_at: authUser.last_sign_in_at || undefined,
         last_login_ip: undefined,
       };
 
-      console.log('🔐 User data processed successfully:', {
+      console.log('🔐 Admin user data processed successfully:', {
         email: userData.email,
         role: userData.role,
-        school_id: userData.school_id,
+        is_admin: profile.is_admin,
         hasProfile: !!profile
       });
 
@@ -183,10 +171,10 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
       });
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error('Unknown error');
-      console.error('🔐 User processing failed:', error);
+      console.error('🔐 Admin user processing failed:', error);
       
       handleAuthError(error, {
-        action: 'process_user',
+        action: 'process_admin_user',
         userId: authUser?.id,
         metadata: { email: authUser?.email }
       });
@@ -194,11 +182,11 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
       setState({
         user: null,
         isLoading: false,
-        error: 'User processing failed: ' + (error.message || 'Unknown error'),
+        error: 'Authentication failed: ' + (error.message || 'Unknown error'),
         isInitialized: true
       });
     }
-  }, [fetchProfile]);
+  }, [fetchAdminProfile]);
 
   // Initialize authentication
   useEffect(() => {
@@ -206,7 +194,7 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
 
     const initializeAuth = async () => {
       try {
-        console.log('🔐 Setting up auth listener');
+        console.log('🔐 Setting up admin auth listener');
         
         // Clean up existing subscription
         if (subscriptionRef.current) {
@@ -245,7 +233,7 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
         // Set up auth listener for future changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
-            console.log('🔐 Auth event:', event, !!session);
+            console.log('🔐 Admin auth event:', event, !!session);
             if (!isMountedRef.current) return;
             
             if (event === 'SIGNED_OUT' || !session) {
@@ -264,10 +252,10 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
 
       } catch (err: unknown) {
         const error = err instanceof Error ? err : new Error('Unknown error');
-        console.error('🔐 Auth initialization failed:', error);
+        console.error('🔐 Admin auth initialization failed:', error);
         
         handleAuthError(error, {
-          action: 'initialize_auth'
+          action: 'initialize_admin_auth'
         });
         
         if (isMountedRef.current) {
@@ -291,10 +279,10 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
     };
   }, [processUser]);
 
-  // Sign in method
+  // Sign in method - ADMIN ONLY
   const signIn = useCallback(async (email: string, password: string) => {
     try {
-      console.log('🔐 Attempting sign in for:', email);
+      console.log('🔐 Attempting admin sign in for:', email);
       
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -304,9 +292,9 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
       });
 
       if (error) {
-        console.error('🔐 Sign in failed:', error);
+        console.error('🔐 Admin sign in failed:', error);
         handleAuthError(error, {
-          action: 'sign_in',
+          action: 'admin_sign_in',
           metadata: { email }
         });
         
@@ -320,15 +308,15 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
       }
 
       if (data.user) {
-        console.log('🔐 Sign in successful for:', email);
+        console.log('🔐 Admin sign in successful for:', email);
         return { success: true };
       }
 
       return { success: false, error: 'Sign in failed - no user returned' };
     } catch (error) {
-      console.error('🔐 Sign in exception:', error);
+      console.error('🔐 Admin sign in exception:', error);
       handleAuthError(error, {
-        action: 'sign_in',
+        action: 'admin_sign_in',
         metadata: { email }
       });
       
@@ -346,7 +334,7 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
   // Sign out method
   const signOut = useCallback(async () => {
     try {
-      console.log('🔐 Signing out user');
+      console.log('🔐 Signing out admin user');
       await supabase.auth.signOut();
       setState({
         user: null,
@@ -355,9 +343,9 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
         isInitialized: true
       });
     } catch (error) {
-      console.error('🔐 Sign out failed:', error);
+      console.error('🔐 Admin sign out failed:', error);
       handleAuthError(error, {
-        action: 'sign_out'
+        action: 'admin_sign_out'
       });
     }
   }, []);
@@ -365,15 +353,15 @@ export const useConsolidatedAuth = (): AuthState & AuthActions => {
   // Refresh user method
   const refreshUser = useCallback(async () => {
     try {
-      console.log('🔐 Refreshing user data');
+      console.log('🔐 Refreshing admin user data');
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await processUser(user);
       }
     } catch (error) {
-      console.error('🔐 Refresh user failed:', error);
+      console.error('🔐 Refresh admin user failed:', error);
       handleAuthError(error, {
-        action: 'refresh_user'
+        action: 'refresh_admin_user'
       });
     }
   }, [processUser]);

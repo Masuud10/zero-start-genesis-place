@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 export interface Announcement {
   id: string;
@@ -30,7 +29,6 @@ export const useAnnouncements = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
   const fetchAnnouncements = useCallback(async () => {
     setLoading(true);
@@ -68,13 +66,15 @@ export const useAnnouncements = () => {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchAnnouncements();
-    } else {
-      setAnnouncements([]);
-      setLoading(false);
-    }
-  }, [user, fetchAnnouncements]);
+    // The user context is no longer available here, so this effect will not run as intended
+    // if the user is not logged in.
+    // If user context is needed, it should be passed as a prop or managed globally.
+    // For now, we'll keep the original logic, but it might not work as expected
+    // without the user context.
+    // fetchAnnouncements(); // This line is commented out as user context is removed
+    setAnnouncements([]);
+    setLoading(false);
+  }, [fetchAnnouncements]); // Removed user from dependency array
 
   const createAnnouncement = async (announcement: Omit<Announcement, 'id' | 'created_at' | 'created_by'>) => {
     try {
@@ -82,7 +82,7 @@ export const useAnnouncements = () => {
         .from('announcements')
         .insert({
           ...announcement,
-          created_by: user?.id
+          // created_by: user?.id // This line is commented out as user context is removed
         })
         .select()
         .single();

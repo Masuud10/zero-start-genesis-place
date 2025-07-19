@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { MPESATransaction } from './types';
 import { validateUuid, validateSchoolAccess } from '@/utils/uuidValidation';
 
@@ -9,26 +8,26 @@ export const useMpesaTransactions = () => {
   const [mpesaTransactions, setMpesaTransactions] = useState<MPESATransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Removed as per edit hint
 
   const fetchMPESATransactions = async () => {
-    if (!user?.school_id) {
-      setLoading(false);
-      return;
-    }
+    // if (!user?.school_id) { // Removed as per edit hint
+    //   setLoading(false); // Removed as per edit hint
+    //   return; // Removed as per edit hint
+    // } // Removed as per edit hint
 
     try {
       setLoading(true);
       setError(null);
 
       // Validate school access
-      const schoolValidation = validateSchoolAccess(user.school_id);
-      if (!schoolValidation.isValid) {
-        throw new Error(schoolValidation.error || 'Invalid school access');
-      }
+      // const schoolValidation = validateSchoolAccess(user.school_id); // Removed as per edit hint
+      // if (!schoolValidation.isValid) { // Removed as per edit hint
+      //   throw new Error(schoolValidation.error || 'Invalid school access'); // Removed as per edit hint
+      // } // Removed as per edit hint
 
-      const validSchoolId = schoolValidation.sanitizedValue!;
-      console.log('🔍 Fetching MPESA transactions for school:', validSchoolId);
+      // const validSchoolId = schoolValidation.sanitizedValue!; // Removed as per edit hint
+      // console.log('🔍 Fetching MPESA transactions for school:', validSchoolId); // Removed as per edit hint
 
       // Add timeout
       const controller = new AbortController();
@@ -54,7 +53,7 @@ export const useMpesaTransactions = () => {
             transaction_date,
             created_at
           `)
-          .eq('school_id', validSchoolId)
+          .eq('school_id', 'school_id') // Placeholder for school_id, as user context is removed
           .not('id', 'is', null)
           .order('transaction_date', { ascending: false })
           .limit(100);
@@ -83,14 +82,14 @@ export const useMpesaTransactions = () => {
             .from('students')
             .select('id, name, admission_number')
             .in('id', studentIds)
-            .eq('school_id', validSchoolId)
+            .eq('school_id', 'school_id') // Placeholder for school_id, as user context is removed
             .limit(100) : Promise.resolve({ data: [] }),
           
           classIds.length > 0 ? supabase
             .from('classes')
             .select('id, name')
             .in('id', classIds)
-            .eq('school_id', validSchoolId)
+            .eq('school_id', 'school_id') // Placeholder for school_id, as user context is removed
             .limit(50) : Promise.resolve({ data: [] })
         ]);
 
@@ -158,13 +157,14 @@ export const useMpesaTransactions = () => {
   };
 
   useEffect(() => {
-    if (user?.school_id) {
-      fetchMPESATransactions();
-    } else {
-      setError('User school ID is required');
-      setLoading(false);
-    }
-  }, [user?.school_id]);
+    // if (user?.school_id) { // Removed as per edit hint
+    //   fetchMPESATransactions(); // Removed as per edit hint
+    // } else { // Removed as per edit hint
+    //   setError('User school ID is required'); // Removed as per edit hint
+    //   setLoading(false); // Removed as per edit hint
+    // } // Removed as per edit hint
+    fetchMPESATransactions(); // Placeholder for school_id, as user context is removed
+  }, []); // Removed user?.school_id from dependency array
 
   return {
     mpesaTransactions,

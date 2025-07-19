@@ -2,10 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MaintenanceModeService, MaintenanceModeSettings, MaintenanceStatus } from '@/services/system/maintenanceModeService';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 
 export const useMaintenanceMode = () => {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -40,14 +38,14 @@ export const useMaintenanceMode = () => {
     error: statusError,
     refetch: refetchStatus
   } = useQuery({
-    queryKey: ['maintenance-status', user?.role],
+    queryKey: ['maintenance-status'],
     queryFn: async () => {
-      console.log('🔄 useMaintenanceMode: Fetching maintenance status for role:', user?.role);
-      const status = await MaintenanceModeService.getMaintenanceStatus(user?.role);
+      console.log('🔄 useMaintenanceMode: Fetching maintenance status...');
+      const status = await MaintenanceModeService.getMaintenanceStatus();
       console.log('🔄 useMaintenanceMode: Status fetched:', status);
       return status;
     },
-    enabled: !!user?.role,
+    enabled: true,
     staleTime: 10 * 1000, // 10 seconds
     refetchInterval: 30 * 1000, // Refetch every 30 seconds
     retry: 3,

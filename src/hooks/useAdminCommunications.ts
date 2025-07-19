@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
+import { useConsolidatedAuth } from '@/hooks/useConsolidatedAuth';
 import { CommunicationsService } from '@/services/communicationsService';
 import { AdminCommunication, AdminCommunicationCreate, AdminCommunicationUpdate } from '@/types/communications';
 import { useToast } from '@/hooks/use-toast';
 
 export const useAdminCommunications = () => {
-  const { user } = useAuth();
+  const { user } = useConsolidatedAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

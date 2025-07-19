@@ -1,95 +1,89 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 export const useSchoolData = () => {
-  const [classes, setClasses] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
-  const [feeStructures, setFeeStructures] = useState<any[]>([]);
+  const [schoolData, setSchoolData] = useState<{
+    id: string;
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    curriculum: string;
+    created_at: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
   const fetchSchoolData = async () => {
-    if (!user?.school_id) {
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
 
-      console.log('🏫 Fetching school data for:', user.school_id);
+      // Since user context is removed, we'll need to get school data differently
+      // For now, we'll use a placeholder or get it from a different source
+      const schoolId = 'placeholder_school_id'; // This should be provided externally
 
-      // Add timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        console.error('🏫 School data query timed out');
-      }, 4000);
+      const { data, error: fetchError } = await supabase
+        .from('schools')
+        .select('*')
+        .eq('id', schoolId)
+        .single();
 
-      // Use Promise.all for parallel queries with limits
-      const [classesResult, studentsResult, feeStructuresResult] = await Promise.all([
-        // Fetch classes with limit
-        supabase
-          .from('classes')
-          .select('id, name, level, stream, teacher_id')
-          .eq('school_id', user.school_id)
-          .limit(100),
+      if (fetchError) {
+        throw fetchError;
+      }
 
-        // Fetch students with limit  
-        supabase
-          .from('students')
-          .select('id, name, admission_number, class_id, is_active')
-          .eq('school_id', user.school_id)
-          .eq('is_active', true)
-          .limit(500),
-
-        // Fetch fee structures with limit
-        supabase
-          .from('fee_structures')
-          .select('id, name, academic_year, term, is_active')
-          .eq('school_id', user.school_id)
-          .limit(50)
-      ]);
-
-      clearTimeout(timeoutId);
-
-      // Check for errors
-      if (classesResult.error) throw classesResult.error;
-      if (studentsResult.error) throw studentsResult.error;
-      if (feeStructuresResult.error) throw feeStructuresResult.error;
-
-      setClasses(classesResult.data || []);
-      setStudents(studentsResult.data || []);
-      setFeeStructures(feeStructuresResult.data || []);
-      setError(null);
-      
-      console.log('🏫 School data loaded:', {
-        classes: classesResult.data?.length || 0,
-        students: studentsResult.data?.length || 0,
-        feeStructures: feeStructuresResult.data?.length || 0
-      });
-    } catch (err: any) {
+      if (data) {
+        setSchoolData(data);
+      } else {
+        setError('School not found');
+      }
+    } catch (err) {
       console.error('Error fetching school data:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Failed to fetch school data');
     } finally {
       setLoading(false);
     }
   };
 
+  const updateSchoolData = async (updates: Partial<typeof schoolData>) => {
+    try {
+      setError(null);
+
+      if (!schoolData?.id) {
+        throw new Error('No school data available for update');
+      }
+
+      const { data, error: updateError } = await supabase
+        .from('schools')
+        .update(updates)
+        .eq('id', schoolData.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      if (data) {
+        setSchoolData(data);
+      }
+    } catch (err) {
+      console.error('Error updating school data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update school data');
+    }
+  };
+
   useEffect(() => {
     fetchSchoolData();
-  }, [user?.school_id]);
+  }, []);
 
   return {
-    classes,
-    students,
-    feeStructures,
+    schoolData,
     loading,
     error,
-    refetch: fetchSchoolData
+    refetch: fetchSchoolData,
+    updateSchoolData
   };
 };

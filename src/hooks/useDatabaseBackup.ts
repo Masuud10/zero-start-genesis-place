@@ -1,11 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DatabaseBackupService, BackupRecord, BackupSettings } from '@/services/system/databaseBackupService';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 
 export const useDatabaseBackup = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Query for backup history

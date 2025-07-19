@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { EnhancedBillingService } from '@/services/billing/enhancedBillingService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useConsolidatedAuth } from '@/hooks/useConsolidatedAuth';
 import { useToast } from '@/hooks/use-toast';
 
 export const useBillingSettings = () => {
-  const { user } = useAuth();
+  const { user } = useConsolidatedAuth();
   
   return useQuery({
     queryKey: ['billing-settings'],
@@ -15,20 +15,8 @@ export const useBillingSettings = () => {
   });
 };
 
-export const useSchoolBillingRecords = (filters?: any) => {
-  const { user } = useAuth();
-  
-  return useQuery({
-    queryKey: ['school-billing-records', filters],
-    queryFn: () => EnhancedBillingService.getSchoolBillingRecords(filters),
-    enabled: user?.role === 'edufam_admin',
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    select: (response) => response.data,
-  });
-};
-
 export const useEnhancedBillingSummary = () => {
-  const { user } = useAuth();
+  const { user } = useConsolidatedAuth();
   
   return useQuery({
     queryKey: ['enhanced-billing-summary'],

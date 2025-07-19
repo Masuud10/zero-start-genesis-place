@@ -1,11 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { NotificationService, NotificationSettings, SystemNotification } from '@/services/system/notificationService';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 
 export const useNotificationSettings = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Query for notification settings

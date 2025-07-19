@@ -1,255 +1,229 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 export interface EnhancedAnnouncement {
   id: string;
   title: string;
   content: string;
-  target_audience: string[];
-  created_by: string;
-  school_id?: string;
-  expiry_date?: string;
-  attachments?: string[];
+  type: 'info' | 'warning' | 'success' | 'error';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
   is_global: boolean;
   created_at: string;
-  creator_name?: string;
-  region?: string;
-  school_type?: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  delivery_channels: string[];
-  auto_archive_date?: string;
-  is_archived: boolean;
-  tags?: string[];
-  read_count: number;
-  total_recipients: number;
+  created_by: string;
+  expires_at?: string;
+  recipients?: string[];
+  read_by?: string[];
+  attachments?: string[];
+  creator?: {
+    name: string;
+    role: string;
+  };
 }
 
 export interface AnnouncementFilters {
+  type?: string;
   priority?: string;
-  region?: string;
-  school_type?: string;
-  target_audience?: string[];
-  is_archived?: boolean;
-  tags?: string[];
-  date_range?: {
+  isGlobal?: boolean;
+  dateRange?: {
     start: string;
     end: string;
   };
 }
 
-export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
+export const useEnhancedAnnouncements = (filters: AnnouncementFilters = {}) => {
   const [announcements, setAnnouncements] = useState<EnhancedAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetchAnnouncements();
-    } else {
-      setLoading(false);
-      setAnnouncements([]);
-    }
-  }, [user, filters]);
+    // Since this is an admin application, we'll fetch all announcements
+    fetchAnnouncements();
+  }, [filters]);
 
   const fetchAnnouncements = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       let query = supabase
         .from('announcements')
         .select(`
-          *,
-          profiles!announcements_created_by_fkey(name)
+          id,
+          title,
+          content,
+          type,
+          priority,
+          is_global,
+          created_at,
+          created_by,
+          expires_at,
+          recipients,
+          read_by,
+          attachments
         `)
         .order('created_at', { ascending: false });
 
-      // Apply filters safely
-      if (filters?.is_archived !== undefined) {
-        query = query.eq('is_archived', filters.is_archived);
+      // Apply filters
+      if (filters.type) {
+        query = query.eq('type', filters.type);
       }
-
-      if (filters?.priority) {
+      if (filters.priority) {
         query = query.eq('priority', filters.priority);
       }
-
-      if (filters?.region) {
-        query = query.eq('region', filters.region);
+      if (filters.isGlobal !== undefined) {
+        query = query.eq('is_global', filters.isGlobal);
       }
-
-      if (filters?.school_type) {
-        query = query.eq('school_type', filters.school_type);
-      }
-
-      if (filters?.target_audience && filters.target_audience.length > 0) {
-        query = query.overlaps('target_audience', filters.target_audience);
-      }
-
-      if (filters?.tags && filters.tags.length > 0) {
-        query = query.overlaps('tags', filters.tags);
-      }
-
-      if (filters?.date_range) {
+      if (filters.dateRange) {
         query = query
-          .gte('created_at', filters.date_range.start)
-          .lte('created_at', filters.date_range.end);
+          .gte('created_at', filters.dateRange.start)
+          .lte('created_at', filters.dateRange.end);
       }
 
-      const { data, error } = await query;
+      const { data, error: fetchError } = await query;
 
-      if (error) {
-        console.error('Announcements fetch error:', error);
-        throw error;
+      if (fetchError) {
+        throw fetchError;
       }
 
-      // Process data safely
-      const formattedData: EnhancedAnnouncement[] = (data || []).map(item => {
-        try {
-          return {
-            id: item.id || '',
-            title: item.title || '',
-            content: item.content || '',
-            target_audience: Array.isArray(item.target_audience) ? item.target_audience : [],
-            created_by: item.created_by || '',
-            school_id: item.school_id,
-            expiry_date: item.expiry_date,
-            attachments: Array.isArray(item.attachments) ? item.attachments : [],
-            is_global: Boolean(item.is_global),
-            created_at: item.created_at || new Date().toISOString(),
-            creator_name: item.profiles?.name,
-            region: item.region,
-            school_type: item.school_type,
-            priority: (['low', 'medium', 'high', 'urgent'].includes(item.priority) 
-              ? item.priority 
-              : 'medium') as 'low' | 'medium' | 'high' | 'urgent',
-            delivery_channels: Array.isArray(item.delivery_channels) ? item.delivery_channels : ['web'],
-            auto_archive_date: item.auto_archive_date,
-            is_archived: Boolean(item.is_archived),
-            tags: Array.isArray(item.tags) ? item.tags : [],
-            read_count: Number(item.read_count) || 0,
-            total_recipients: Number(item.total_recipients) || 0
-          };
-        } catch (itemError) {
-          console.warn('Error processing announcement item:', itemError);
-          return null;
-        }
-      }).filter(Boolean) as EnhancedAnnouncement[];
+      // Get creator details for each announcement
+      const creatorIds = [...new Set(data?.map(item => item.created_by).filter(Boolean) || [])];
+      
+      const { data: creators } = await supabase
+        .from('profiles')
+        .select('id, name, role')
+        .in('id', creatorIds);
 
-      setAnnouncements(formattedData);
-    } catch (error: any) {
-      console.error('Error fetching announcements:', error);
-      setError(error?.message || 'Failed to fetch announcements');
-      setAnnouncements([]);
+      const creatorMap = new Map(creators?.map(c => [c.id, c]) || []);
+
+      const enhancedData = data?.map(item => ({
+        ...item,
+        creator: creatorMap.get(item.created_by)
+      })) || [];
+
+      setAnnouncements(enhancedData);
+    } catch (err) {
+      console.error('Error fetching announcements:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch announcements');
     } finally {
       setLoading(false);
     }
   };
 
-  const createBroadcastAnnouncement = async (announcement: Omit<EnhancedAnnouncement, 'id' | 'created_at' | 'created_by' | 'read_count' | 'total_recipients'>) => {
+  const createAnnouncement = async (announcement: Omit<EnhancedAnnouncement, 'id' | 'created_at' | 'created_by'>) => {
     try {
-      const { data, error } = await supabase
+      setError(null);
+
+      // Since user context is removed, we'll use a placeholder creator ID
+      const creatorId = 'admin_user_id'; // This should be provided externally
+
+      const { data, error: createError } = await supabase
         .from('announcements')
         .insert({
           ...announcement,
-          created_by: user?.id,
-          is_global: user?.role === 'edufam_admin'
+          created_by: creatorId,
+          is_global: true // Admin announcements are global
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (createError) {
+        throw createError;
+      }
 
-      // Create recipient records
-      await createAnnouncementRecipients(data.id, announcement);
-      
-      await fetchAnnouncements();
-      return { data, error: null };
-    } catch (error: any) {
-      console.error('Error creating announcement:', error);
-      return { data: null, error };
+      if (data) {
+        setAnnouncements(prev => [data, ...prev]);
+      }
+
+      return data;
+    } catch (err) {
+      console.error('Error creating announcement:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create announcement');
+      throw err;
     }
   };
 
-  const createAnnouncementRecipients = async (announcementId: string, announcement: any) => {
+  const updateAnnouncement = async (id: string, updates: Partial<EnhancedAnnouncement>) => {
     try {
-      // Get users matching target criteria
-      let query = supabase
-        .from('profiles')
-        .select('id, role, school_id');
+      setError(null);
 
-      // Convert target audience roles to database roles
-      const dbRoles = (announcement.target_audience || []).map((role: string) => {
-        switch (role) {
-          case 'school_owners': return 'school_owner';
-          case 'principals': return 'principal';
-          case 'teachers': return 'teacher';
-          case 'parents': return 'parent';
-          case 'finance_officers': return 'finance_officer';
-          default: return role;
-        }
-      });
+      const { data, error: updateError } = await supabase
+        .from('announcements')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
 
-      if (dbRoles.length > 0) {
-        query = query.in('role', dbRoles);
+      if (updateError) {
+        throw updateError;
       }
 
-      const { data: users, error } = await query;
-
-      if (error) {
-        console.warn('Error fetching users for recipients:', error);
-        return;
+      if (data) {
+        setAnnouncements(prev => 
+          prev.map(announcement => announcement.id === id ? data : announcement)
+        );
       }
 
-      const recipients = (users || []).map(user => ({
-        announcement_id: announcementId,
-        user_id: user.id,
-        school_id: user.school_id,
-        user_role: user.role,
-        region: announcement.region,
-        school_type: announcement.school_type,
-        delivery_channel: announcement.delivery_channels?.[0] || 'web'
-      }));
+      return data;
+    } catch (err) {
+      console.error('Error updating announcement:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update announcement');
+      throw err;
+    }
+  };
 
-      if (recipients.length > 0) {
-        await supabase
-          .from('announcement_recipients')
-          .insert(recipients);
+  const deleteAnnouncement = async (id: string) => {
+    try {
+      setError(null);
+
+      const { error: deleteError } = await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) {
+        throw deleteError;
       }
-    } catch (error: any) {
-      console.error('Error creating announcement recipients:', error);
+
+      setAnnouncements(prev => prev.filter(announcement => announcement.id !== id));
+    } catch (err) {
+      console.error('Error deleting announcement:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete announcement');
+      throw err;
     }
   };
 
   const markAsRead = async (announcementId: string) => {
     try {
-      if (!user?.id) return;
+      // Since user context is removed, we'll use a placeholder user ID
+      const userId = 'current_user_id'; // This should be provided externally
       
-      await supabase
+      const { error: updateError } = await supabase
         .from('announcement_recipients')
-        .update({
-          read_at: new Date().toISOString(),
-          delivery_status: 'read'
-        })
-        .eq('announcement_id', announcementId)
-        .eq('user_id', user.id);
-    } catch (error: any) {
-      console.error('Error marking announcement as read:', error);
-    }
-  };
+        .upsert({
+          announcement_id: announcementId,
+          user_id: userId,
+          read_at: new Date().toISOString()
+        });
 
-  const archiveAnnouncement = async (announcementId: string) => {
-    try {
-      await supabase
-        .from('announcements')
-        .update({ is_archived: true })
-        .eq('id', announcementId);
-      
-      await fetchAnnouncements();
-    } catch (error: any) {
-      console.error('Error archiving announcement:', error);
+      if (updateError) {
+        throw updateError;
+      }
+
+      setAnnouncements(prev => 
+        prev.map(announcement => {
+          if (announcement.id === announcementId) {
+            return {
+              ...announcement,
+              read_by: [...(announcement.read_by || []), userId]
+            };
+          }
+          return announcement;
+        })
+      );
+    } catch (err) {
+      console.error('Error marking announcement as read:', err);
+      setError(err instanceof Error ? err.message : 'Failed to mark announcement as read');
     }
   };
 
@@ -257,9 +231,10 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
     announcements,
     loading,
     error,
-    createBroadcastAnnouncement,
+    createAnnouncement,
+    updateAnnouncement,
+    deleteAnnouncement,
     markAsRead,
-    archiveAnnouncement,
     refetch: fetchAnnouncements
   };
 };

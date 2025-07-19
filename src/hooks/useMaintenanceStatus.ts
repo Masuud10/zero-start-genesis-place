@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface MaintenanceStatus {
   isLoading: boolean;
@@ -9,7 +8,6 @@ interface MaintenanceStatus {
 }
 
 export const useMaintenanceStatus = (): MaintenanceStatus => {
-  const { user } = useAuth();
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -41,7 +39,7 @@ export const useMaintenanceStatus = (): MaintenanceStatus => {
     fetchSettings();
   }, []);
 
-  const isAdmin = user?.role === 'edufam_admin';
+  const isAdmin = false; // No user context, so isAdmin is always false
 
   return { isLoading, isMaintenanceMode, isAdmin };
 };

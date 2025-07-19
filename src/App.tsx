@@ -2,8 +2,10 @@ import React from "react";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { AdminAuthProvider } from "@/components/auth/AdminAuthProvider";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { DashboardProvider } from "@/contexts/DashboardContext";
+import { UIEnhancementProvider } from "@/contexts/UIEnhancementContext";
+import { NavigationProvider } from "@/contexts/NavigationContext";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
 import AppRoutes from "@/components/AppRoutes";
 import "./App.css";
@@ -61,11 +63,15 @@ function App() {
       <GlobalErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
-            <AdminAuthProvider>
-              <ThemeProvider>
-                <AppLogic />
-              </ThemeProvider>
-            </AdminAuthProvider>
+            <ThemeProvider>
+              <UIEnhancementProvider>
+                <NavigationProvider>
+                  <DashboardProvider>
+                    <AppLogic />
+                  </DashboardProvider>
+                </NavigationProvider>
+              </UIEnhancementProvider>
+            </ThemeProvider>
           </BrowserRouter>
         </QueryClientProvider>
       </GlobalErrorBoundary>

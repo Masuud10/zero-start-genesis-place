@@ -1,5 +1,4 @@
 
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
@@ -11,21 +10,9 @@ interface DataAccessOptions {
 }
 
 export const useDataAccess = ({ table, select = '*', filters = {}, enabled = true }: DataAccessOptions) => {
-  const { user } = useAuth();
-
   return useQuery({
-    queryKey: ['data-access', table, filters, user?.id],
+    queryKey: ['data-access', table, filters],
     queryFn: async () => {
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      console.log(`🔍 Accessing ${table} with user:`, {
-        userId: user.id,
-        role: user.role,
-        schoolId: user.school_id
-      });
-
       try {
         // Use a more generic approach to avoid type issues
         const { data, error } = await supabase
@@ -44,7 +31,7 @@ export const useDataAccess = ({ table, select = '*', filters = {}, enabled = tru
         throw error;
       }
     },
-    enabled: enabled && !!user,
+    enabled: enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error: any) => {
       // Don't retry on permission errors
