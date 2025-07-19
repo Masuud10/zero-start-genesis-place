@@ -2,7 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useConsolidatedAuth } from "@/hooks/useConsolidatedAuth";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import AdminLandingPage from "@/pages/AdminLandingPage";
+import SimpleLandingPage from "@/pages/SimpleLandingPage";
 import SuperAdminDashboard from "@/pages/super_admin/SuperAdminDashboard";
 import SupportHrDashboard from "@/pages/support_hr/SupportHrDashboard";
 import SoftwareEngineerDashboard from "@/pages/software_engineer/SoftwareEngineerDashboard";
@@ -40,8 +40,8 @@ const AppRoutes = () => {
   if (!user) {
     return (
       <Routes>
-        <Route path="/" element={<AdminLandingPage />} />
-        <Route path="/login" element={<AdminLandingPage />} />
+        <Route path="/" element={<SimpleLandingPage />} />
+        <Route path="/login" element={<SimpleLandingPage />} />
         <Route path="/debug" element={<DebugPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

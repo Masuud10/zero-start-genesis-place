@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import AdminLayout from "@/components/layout/AdminLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -105,7 +106,8 @@ const SoftwareEngineerDashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <AdminLayout>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col space-y-4">
         <div className="flex items-center justify-between">
@@ -632,7 +634,8 @@ const SoftwareEngineerDashboard = () => {
           </EnhancedCard>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </AdminLayout>
   );
 };
 
