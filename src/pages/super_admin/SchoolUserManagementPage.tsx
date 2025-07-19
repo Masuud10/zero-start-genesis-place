@@ -91,52 +91,23 @@ const SchoolUserManagementPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch users with school information
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(
-          `
-          id,
-          name,
-          email,
-          role,
-          school_id,
-          status,
-          created_at,
-          updated_at,
-          schools!inner(name)
-        `
-        )
-        .not("school_id", "is", null)
-        .order("created_at", { ascending: false });
+      // Use the new database function to fetch school users data
+      const { data, error } = await supabase.rpc('get_school_users_data');
 
       if (error) {
         throw error;
       }
 
-      // Transform data to include school name
-      const transformedUsers =
-        data?.map((user) => ({
-          ...user,
-          school_name: user.schools?.name || "Unknown School",
-        })) || [];
-
-      setUsers(transformedUsers);
-
-      // Calculate stats
-      const totalUsers = transformedUsers.length;
-      const activeUsers = transformedUsers.filter(
-        (u) => u.status === "active"
-      ).length;
-      const inactiveUsers = transformedUsers.filter(
-        (u) => u.status === "inactive"
-      ).length;
-
-      setStats({
-        total_users: totalUsers,
-        active_users: activeUsers,
-        inactive_users: inactiveUsers,
-      });
+      if (data && (data as any).success) {
+        setUsers((data as any).users || []);
+        setStats({
+          total_users: (data as any).stats.total_users || 0,
+          active_users: (data as any).stats.active_users || 0,
+          inactive_users: (data as any).stats.inactive_users || 0,
+        });
+      } else {
+        throw new Error((data as any)?.error || 'Failed to fetch users');
+      }
     } catch (err) {
       console.error("Error fetching users:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch users");

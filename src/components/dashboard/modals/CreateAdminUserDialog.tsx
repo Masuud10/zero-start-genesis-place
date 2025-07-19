@@ -37,6 +37,7 @@ const CreateAdminUserDialog: React.FC<CreateAdminUserDialogProps> = ({
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    password: "",
     role: "",
   });
 
@@ -45,30 +46,36 @@ const CreateAdminUserDialog: React.FC<CreateAdminUserDialogProps> = ({
     setIsLoading(true);
 
     try {
-      // Create admin user directly in admin_users table
-      const { data, error } = await supabase.from("admin_users").insert({
-        name: formData.name,
-        email: formData.email,
-        role: formData.role as "super_admin" | "software_engineer" | "support_hr" | "sales_marketing" | "finance" | "edufam_admin",
-        is_active: true,
-        app_type: "admin",
+      // Create admin user with auth and profile using edge function
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          role: formData.role,
+          school_id: null, // Admin users don't have school_id
+        }
       });
 
       if (error) throw error;
 
-      toast({
-        title: "Admin User Created",
-        description: `${formData.name} has been created successfully.`,
-      });
+      if (data?.success) {
+        toast({
+          title: "Admin User Created",
+          description: `${formData.name} has been created successfully.`,
+        });
 
-      setFormData({ name: "", email: "", role: "" });
-      onOpenChange(false);
-      onUserCreated?.();
-    } catch (error) {
+        setFormData({ name: "", email: "", password: "", role: "" });
+        onOpenChange(false);
+        onUserCreated?.();
+      } else {
+        throw new Error(data?.error || 'Failed to create admin user');
+      }
+    } catch (error: any) {
       console.error("Error creating admin user:", error);
       toast({
         title: "Error",
-        description: "Failed to create admin user. Please try again.",
+        description: error.message || "Failed to create admin user. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -112,6 +119,19 @@ const CreateAdminUserDialog: React.FC<CreateAdminUserDialogProps> = ({
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="password">Temporary Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+              placeholder="Enter temporary password"
+              required
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
             <Select
               value={formData.role}
@@ -123,9 +143,12 @@ const CreateAdminUserDialog: React.FC<CreateAdminUserDialogProps> = ({
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="super_admin">Super Admin</SelectItem>
+                <SelectItem value="edufam_admin">EduFam Admin</SelectItem>
+                <SelectItem value="elimisha_admin">Elimisha Admin</SelectItem>
                 <SelectItem value="support_hr">Support HR</SelectItem>
                 <SelectItem value="software_engineer">Software Engineer</SelectItem>
+                <SelectItem value="sales_marketing">Sales & Marketing</SelectItem>
+                <SelectItem value="finance">Finance</SelectItem>
               </SelectContent>
             </Select>
           </div>

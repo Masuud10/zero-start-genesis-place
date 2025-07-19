@@ -86,41 +86,23 @@ const AdminUserManagementPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch admin users (users without school_id)
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(
-          `
-          id,
-          name,
-          email,
-          role,
-          status,
-          created_at,
-          updated_at
-        `
-        )
-        .is("school_id", null)
-        .order("created_at", { ascending: false });
+      // Use the new database function to fetch admin users data
+      const { data, error } = await supabase.rpc('get_admin_users_data');
 
       if (error) {
         throw error;
       }
 
-      setUsers(data || []);
-
-      // Calculate stats
-      const totalAdmins = data?.length || 0;
-      const activeAdmins =
-        data?.filter((u) => u.status === "active").length || 0;
-      const inactiveAdmins =
-        data?.filter((u) => u.status === "inactive").length || 0;
-
-      setStats({
-        total_admins: totalAdmins,
-        active_admins: activeAdmins,
-        inactive_admins: inactiveAdmins,
-      });
+      if (data && (data as any).success) {
+        setUsers((data as any).users || []);
+        setStats({
+          total_admins: (data as any).stats.total_admins || 0,
+          active_admins: (data as any).stats.active_admins || 0,
+          inactive_admins: (data as any).stats.inactive_admins || 0,
+        });
+      } else {
+        throw new Error((data as any)?.error || 'Failed to fetch admin users');
+      }
     } catch (err) {
       console.error("Error fetching admin users:", err);
       setError(

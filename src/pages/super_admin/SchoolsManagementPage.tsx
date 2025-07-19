@@ -61,6 +61,11 @@ interface School {
 
 const SchoolsManagementPage: React.FC = () => {
   const [schools, setSchools] = useState<School[]>([]);
+  const [stats, setStats] = useState({
+    total_schools: 0,
+    active_schools: 0,
+    inactive_schools: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -78,23 +83,21 @@ const SchoolsManagementPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const { data, error } = await supabase
-        .from("schools")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // Use the new database function to fetch schools data
+      const { data, error } = await supabase.rpc('get_schools_data');
 
-      if (error) {
-        throw error;
+      if (error) throw error;
+
+      if (data && (data as any).success) {
+        setSchools((data as any).schools || []);
+        setStats({
+          total_schools: (data as any).stats.total_schools || 0,
+          active_schools: (data as any).stats.active_schools || 0,
+          inactive_schools: (data as any).stats.inactive_schools || 0,
+        });
+      } else {
+        throw new Error((data as any)?.error || 'Failed to fetch schools');
       }
-
-      // Get student count for each school (mock data for now)
-      const schoolsWithCounts =
-        data?.map((school) => ({
-          ...school,
-          student_count: Math.floor(Math.random() * 1000) + 50, // Mock data
-        })) || [];
-
-      setSchools(schoolsWithCounts);
     } catch (err) {
       console.error("Error fetching schools:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch schools");

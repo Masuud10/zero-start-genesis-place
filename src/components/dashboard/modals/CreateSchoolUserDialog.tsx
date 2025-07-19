@@ -38,6 +38,7 @@ const CreateSchoolUserDialog: React.FC<CreateSchoolUserDialogProps> = ({
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    password: "",
     role: "",
     school_id: "",
   });
@@ -57,31 +58,36 @@ const CreateSchoolUserDialog: React.FC<CreateSchoolUserDialogProps> = ({
     setIsLoading(true);
 
     try {
-      // Create profile for school user
-      const { data, error } = await supabase.from("profiles").insert({
-        id: crypto.randomUUID(),
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        school_id: formData.school_id,
-        status: "active",
+      // Create user with auth and profile using edge function
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          role: formData.role,
+          school_id: formData.school_id,
+        }
       });
 
       if (error) throw error;
 
-      toast({
-        title: "School User Created",
-        description: `${formData.name} has been created successfully.`,
-      });
+      if (data?.success) {
+        toast({
+          title: "School User Created",
+          description: `${formData.name} has been created successfully.`,
+        });
 
-      setFormData({ name: "", email: "", role: "", school_id: "" });
-      onOpenChange(false);
-      onUserCreated?.();
-    } catch (error) {
+        setFormData({ name: "", email: "", password: "", role: "", school_id: "" });
+        onOpenChange(false);
+        onUserCreated?.();
+      } else {
+        throw new Error(data?.error || 'Failed to create user');
+      }
+    } catch (error: any) {
       console.error("Error creating school user:", error);
       toast({
         title: "Error",
-        description: "Failed to create school user. Please try again.",
+        description: error.message || "Failed to create school user. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -121,6 +127,19 @@ const CreateSchoolUserDialog: React.FC<CreateSchoolUserDialogProps> = ({
                 setFormData({ ...formData, email: e.target.value })
               }
               placeholder="Enter email address"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Temporary Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+              placeholder="Enter temporary password"
               required
             />
           </div>
