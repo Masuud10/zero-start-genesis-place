@@ -7,6 +7,7 @@ import { useNavigation } from "@/contexts/NavigationContext";
 import AdminUserManagementPage from "./AdminUserManagementPage";
 import SchoolUserManagementPage from "./SchoolUserManagementPage";
 import SchoolsManagementPage from "./SchoolsManagementPage";
+import SchoolAnalyticsPage from "./SchoolAnalyticsPage";
 
 // Import modals
 import MaintenanceModeModal from "@/components/dashboard/modals/MaintenanceModeModal";
@@ -17,12 +18,13 @@ import CompanyDetailsModal from "@/components/dashboard/modals/CompanyDetailsMod
 
 const SuperAdminDashboard = () => {
   const { currentPage } = useNavigation();
-  
+
   // Modal states
   const [showMaintenanceMode, setShowMaintenanceMode] = useState(false);
   const [showDatabaseSettings, setShowDatabaseSettings] = useState(false);
   const [showSecuritySettings, setShowSecuritySettings] = useState(false);
-  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] =
+    useState(false);
   const [showCompanyDetails, setShowCompanyDetails] = useState(false);
 
   // Handle navigation based on currentPage
@@ -62,9 +64,17 @@ const SuperAdminDashboard = () => {
         return <SchoolUserManagementPage />;
       case "Schools Management":
         return <SchoolsManagementPage />;
+      case "School Analytics":
+        return <SchoolAnalyticsPage />;
       case "Dashboard Overview":
       default:
-        return <DashboardOverview role="super_admin" greeting="Good morning" userName="Super Admin" />;
+        return (
+          <DashboardOverview
+            role="super_admin"
+            greeting="Good morning"
+            userName="Super Admin"
+          />
+        );
     }
   };
 

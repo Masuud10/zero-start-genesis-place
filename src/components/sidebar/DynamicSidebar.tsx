@@ -44,7 +44,7 @@ interface MenuItem {
 const DynamicSidebar = () => {
   const { user, signOut } = useConsolidatedAuth();
   const { setCurrentPage } = useNavigation();
-  
+
   // Define menu items for each role
   const menuItems: MenuItem[] = [
     // Super Admin Menu Items
@@ -116,6 +116,13 @@ const DynamicSidebar = () => {
       label: "Analytics",
       icon: TrendingUp,
       description: "Business intelligence",
+      roles: ["super_admin"],
+    },
+    {
+      id: "school_analytics",
+      label: "School Analytics",
+      icon: BarChart3,
+      description: "Comprehensive school analytics dashboard",
       roles: ["super_admin"],
     },
     {
