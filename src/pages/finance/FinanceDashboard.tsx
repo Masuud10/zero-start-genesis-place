@@ -63,7 +63,22 @@ import {
   Coins,
   CreditCard as CreditCardIcon,
   Receipt as ReceiptIcon,
+  Award,
+  Plane,
+  FileText as FileDollar,
+  FileText as FilePercent,
 } from "lucide-react";
+import {
+  EnhancedCard,
+  StatCard,
+  MetricCard,
+  ProgressCard,
+} from "@/components/ui/EnhancedCard";
+import {
+  LineChart as LineChartComponent,
+  BarChart,
+  PieChart as PieChartComponent,
+} from "@/components/ui/BeautifulCharts";
 
 interface FinancialKPIs {
   current: {
@@ -100,7 +115,7 @@ interface FinancialKPIs {
     churn_rate: number;
     customer_count: number;
   }>;
-  expenses: Array<{
+  expenseList: Array<{
     id: number;
     expense_date: string;
     description: string;
@@ -127,7 +142,7 @@ interface CompanyExpense {
 }
 
 const FinanceDashboard = () => {
-  const { user } = useAuth();
+  const { user } = useConsolidatedAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -228,6 +243,7 @@ const FinanceDashboard = () => {
             },
             period: period,
             metrics: [],
+            expenseList: [],
           });
         }
       } catch (err) {
@@ -730,7 +746,7 @@ const FinanceDashboard = () => {
 
               {/* Expenses List */}
               <div className="space-y-4">
-                {financialData?.expenses.map((expense) => (
+                {financialData?.expenseList.map((expense) => (
                   <div
                     key={expense.id}
                     className="flex items-center justify-between p-4 border rounded-lg"
@@ -770,8 +786,8 @@ const FinanceDashboard = () => {
                     </div>
                   </div>
                 ))}
-                {(!financialData?.expenses ||
-                  financialData.expenses.length === 0) && (
+                {(!financialData?.expenseList ||
+                  financialData.expenseList.length === 0) && (
                   <div className="text-center py-8 text-muted-foreground">
                     No expenses found
                   </div>

@@ -136,7 +136,7 @@ const AdminUserManagementPage: React.FC = () => {
       setUpdatingStatus(userId);
       const isActive = currentStatus === "inactive";
 
-      const { data, error } = await supabase.rpc("toggle_user_status", {
+      const { data, error } = await supabase.rpc("admin_update_user_status", {
         user_id: userId,
         is_active: isActive,
       });
@@ -145,31 +145,32 @@ const AdminUserManagementPage: React.FC = () => {
         throw error;
       }
 
-      if (data?.success) {
-        // Update local state
-        setUsers((prev) =>
-          prev.map((user) =>
-            user.id === userId ? { ...user, status: data.new_status } : user
-          )
-        );
+      // The response is a string message, not an object with success/new_status
+      const newStatus = isActive ? "active" : "inactive";
 
-        // Update stats
-        setStats((prev) => {
-          if (data.new_status === "active") {
-            return {
-              ...prev,
-              active_admins: prev.active_admins + 1,
-              inactive_admins: prev.inactive_admins - 1,
-            };
-          } else {
-            return {
-              ...prev,
-              active_admins: prev.active_admins - 1,
-              inactive_admins: prev.inactive_admins + 1,
-            };
-          }
-        });
-      }
+      // Update local state
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.id === userId ? { ...user, status: newStatus } : user
+        )
+      );
+
+      // Update stats
+      setStats((prev) => {
+        if (newStatus === "active") {
+          return {
+            ...prev,
+            active_admins: prev.active_admins + 1,
+            inactive_admins: prev.inactive_admins - 1,
+          };
+        } else {
+          return {
+            ...prev,
+            active_admins: prev.active_admins - 1,
+            inactive_admins: prev.inactive_admins + 1,
+          };
+        }
+      });
     } catch (err) {
       console.error("Error toggling user status:", err);
       setError(
