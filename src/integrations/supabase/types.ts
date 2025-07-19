@@ -9302,20 +9302,7 @@ export type Database = {
       }
       get_admin_users_data: {
         Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          user_id: string
-          email: string
-          name: string
-          role: string
-          app_type: string
-          permissions: Json
-          is_active: boolean
-          last_login_at: string
-          created_at: string
-          updated_at: string
-          created_by: string
-        }[]
+        Returns: Json
       }
       get_class_report_data: {
         Args: { p_class_id: string; p_academic_year: string; p_term?: string }
