@@ -9359,8 +9359,19 @@ export type Database = {
         Returns: number
       }
       get_school_users_data: {
-        Args: Record<PropertyKey, never> | { p_school_id?: string }
-        Returns: Json
+        Args: { p_school_id?: string }
+        Returns: {
+          id: string
+          email: string
+          name: string
+          role: string
+          school_id: string
+          school_name: string
+          status: string
+          created_at: string
+          updated_at: string
+          last_login_at: string
+        }[]
       }
       get_schools_data: {
         Args: Record<PropertyKey, never>
