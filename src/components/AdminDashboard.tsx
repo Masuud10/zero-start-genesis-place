@@ -4,6 +4,8 @@ import { useConsolidatedAuth } from '@/hooks/useConsolidatedAuth';
 import SuperAdminDashboard from '@/pages/super_admin/SuperAdminDashboard';
 import SupportHrDashboard from '@/pages/support_hr/SupportHrDashboard';
 import SoftwareEngineerDashboard from '@/pages/software_engineer/SoftwareEngineerDashboard';
+import SalesMarketingDashboard from '@/pages/sales_marketing/SalesMarketingDashboard';
+import FinanceDashboard from '@/pages/finance/FinanceDashboard';
 import { Loader2 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -18,12 +20,30 @@ const AdminDashboard = () => {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  // Default to Super Admin dashboard for now
-  // You can implement role-based routing here
-  return <SuperAdminDashboard />;
+  // Role-based dashboard routing
+  const getDashboardForRole = () => {
+    switch (user.role) {
+      case 'super_admin':
+      case 'edufam_admin':
+        return <SuperAdminDashboard />;
+      case 'support_hr':
+        return <SupportHrDashboard />;
+      case 'software_engineer':
+        return <SoftwareEngineerDashboard />;
+      case 'sales_marketing':
+        return <SalesMarketingDashboard />;
+      case 'finance':
+        return <FinanceDashboard />;
+      default:
+        // If role is not recognized, redirect to login for security
+        return <Navigate to="/login" replace />;
+    }
+  };
+
+  return getDashboardForRole();
 };
 
 export default AdminDashboard;
